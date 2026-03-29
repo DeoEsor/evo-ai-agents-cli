@@ -286,29 +286,32 @@ func (s *AgentService) SearchMarketplace(ctx context.Context, req *MarketplaceSe
 		query["name"] = req.Name
 	}
 	if len(req.Tags) > 0 {
-		for _, tag := range req.Tags {
-			query["tags"] = tag
-		}
+		query["tags"] = joinStrings(req.Tags, ",")
 	}
 	if len(req.Categories) > 0 {
-		for _, category := range req.Categories {
-			query["categories"] = category
-		}
+		query["categories"] = joinStrings(req.Categories, ",")
 	}
 	if len(req.Statuses) > 0 {
-		for _, status := range req.Statuses {
-			query["statuses"] = status
-		}
+		query["statuses"] = joinStrings(req.Statuses, ",")
 	}
 	if len(req.Types) > 0 {
-		for _, agentType := range req.Types {
-			query["types"] = agentType
-		}
+		query["types"] = joinStrings(req.Types, ",")
 	}
 
 	var result MarketplaceAgentListResponse
 	err := s.client.Get(ctx, "/api/v1/marketplace/agents", query, &result)
 	return &result, err
+}
+
+func joinStrings(strs []string, sep string) string {
+	result := ""
+	for i, s := range strs {
+		if i > 0 {
+			result += sep
+		}
+		result += s
+	}
+	return result
 }
 
 // GetMarketplaceAgent возвращает информацию об агенте из маркетплейса

@@ -9,6 +9,14 @@ import (
 func TestConfigValidator_ValidateFile(t *testing.T) {
 	validator := NewConfigValidator()
 
+	// Загружаем реальную схему из проекта
+	schemaPath := "../../schemas/schema.json"
+	for _, name := range []string{"agents", "mcp-servers", "agent-systems"} {
+		if err := validator.LoadSchema(name, schemaPath); err != nil {
+			t.Skipf("Schema file not found at %s, skipping test: %v", schemaPath, err)
+		}
+	}
+
 	// Создаем временные файлы для тестирования
 	tempDir := t.TempDir()
 

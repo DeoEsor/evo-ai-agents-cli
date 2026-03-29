@@ -175,9 +175,20 @@ func (d *AgentDeployer) DeployAgents(ctx context.Context, configFile string, dry
 			createReq.Options["llm"] = llmOptions
 		}
 
-		// TODO: MCP серверы пока не поддерживаются в API создания агентов
+		// Резолвим MCP серверы по именам и добавляем в запрос
 		if len(mcpServerNames) > 0 {
-			fmt.Println(ui.FormatWarning(fmt.Sprintf("MCP servers %v specified but not supported yet", mcpServerNames)))
+			var mcpServerIDs []string
+			for _, serverName := range mcpServerNames {
+				serverID, err := d.findMCPServerID(ctx, serverName)
+				if err != nil {
+					fmt.Println(ui.FormatWarning(fmt.Sprintf("MCP server '%s' not found, skipping: %v", serverName, err)))
+					continue
+				}
+				mcpServerIDs = append(mcpServerIDs, serverID)
+			}
+			if len(mcpServerIDs) > 0 {
+				createReq.MCPServers = mcpServerIDs
+			}
 		}
 
 		// Создаем агента

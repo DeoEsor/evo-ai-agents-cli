@@ -155,30 +155,27 @@ func loadSchemas(validator *validator.ConfigValidator) error {
 func findConfigFiles(dir string) ([]string, error) {
 	var files []string
 
-	// Ищем файлы с расширениями .yaml, .yml, .json
 	extensions := []string{".yaml", ".yml", ".json"}
 
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
+	err := filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
 		}
 
-		name := entry.Name()
+		name := d.Name()
 		for _, ext := range extensions {
 			if len(name) > len(ext) && name[len(name)-len(ext):] == ext {
-				// Добавляем полный путь к файлу
-				files = append(files, filepath.Join(dir, name))
+				files = append(files, path)
 				break
 			}
 		}
-	}
+		return nil
+	})
 
-	return files, nil
+	return files, err
 }
 
 func init() {

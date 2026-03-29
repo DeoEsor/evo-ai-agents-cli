@@ -3,7 +3,6 @@ package deployer
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/cloud-ru/evo-ai-agents-cli/internal/api"
 	"github.com/cloud-ru/evo-ai-agents-cli/internal/parser"
@@ -100,11 +99,22 @@ func (d *SystemDeployer) DeploySystems(ctx context.Context, configFile string, d
 
 		fmt.Println(ui.FormatInfo(fmt.Sprintf("[%d/%d] Deploying agent system: %s", i+1, len(systemsConfig), name)))
 
+		// Резолвим имена агентов в ID
+		var agentIDs []string
+		if len(agentNames) > 0 {
+			resolvedIDs, err := d.resolveAgentIDs(ctx, agentNames)
+			if err != nil {
+				fmt.Println(ui.FormatWarning(fmt.Sprintf("Warning resolving agents for system %s: %v", name, err)))
+			}
+			agentIDs = resolvedIDs
+		}
+
 		// Создаем запрос для создания системы агентов
 		createReq := &api.AgentSystemCreateRequest{
 			Name:        name,
 			Description: description,
 			Options:     options,
+			Agents:      agentIDs,
 		}
 
 		// Создаем систему агентов
@@ -118,19 +128,6 @@ func (d *SystemDeployer) DeploySystems(ctx context.Context, configFile string, d
 			continue
 		}
 
-		// Если есть агенты, привязываем их
-		if len(agentNames) > 0 {
-			err := d.attachAgents(ctx, system.ID, agentNames)
-			if err != nil {
-				results = append(results, DeployResult{
-					Success: false,
-					Message: fmt.Sprintf("Agent system %s created but failed to attach agents: %v", name, err),
-				})
-				fmt.Println(ui.FormatError(fmt.Sprintf("[%d/%d] Agent system %s created but failed to attach agents: %v", i+1, len(systemsConfig), name, err)))
-				continue
-			}
-		}
-
 		results = append(results, DeployResult{
 			Success: true,
 			Message: fmt.Sprintf("Successfully deployed agent system %s (ID: %s)", name, system.ID[:8]),
@@ -141,34 +138,26 @@ func (d *SystemDeployer) DeploySystems(ctx context.Context, configFile string, d
 	return results, nil
 }
 
-// attachAgents привязывает агентов к системе агентов
-func (d *SystemDeployer) attachAgents(ctx context.Context, systemID string, agentNames []string) error {
-	// Получаем список всех агентов
-	agents, err := d.api.Agents.List(ctx, 1000, 0) // Получаем много агентов
+// resolveAgentIDs resolves agent names to their IDs via the API.
+func (d *SystemDeployer) resolveAgentIDs(ctx context.Context, agentNames []string) ([]string, error) {
+	agents, err := d.api.Agents.List(ctx, 1000, 0)
 	if err != nil {
-		return fmt.Errorf("failed to list agents: %w", err)
+		return nil, fmt.Errorf("failed to list agents: %w", err)
 	}
 
-	// Создаем карту имен агентов к их ID
 	agentMap := make(map[string]string)
 	for _, agent := range agents.Data {
 		agentMap[agent.Name] = agent.ID
 	}
 
-	// Находим ID агентов по именам
 	var agentIDs []string
 	for _, agentName := range agentNames {
 		if agentID, exists := agentMap[agentName]; exists {
 			agentIDs = append(agentIDs, agentID)
 		} else {
-			return fmt.Errorf("agent '%s' not found", agentName)
+			return nil, fmt.Errorf("agent '%s' not found", agentName)
 		}
 	}
 
-	// Привязываем агентов к системе
-	// Здесь нужно будет добавить метод в API для привязки агентов
-	// Пока что просто логируем
-	log.Printf("Would attach agents %v to system %s", agentIDs, systemID)
-
-	return nil
+	return agentIDs, nil
 }

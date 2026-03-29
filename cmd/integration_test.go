@@ -44,6 +44,16 @@ func TestValidateCommand_Integration(t *testing.T) {
 
 	// Тестируем валидацию валидного файла
 	configValidator := validator.NewConfigValidator()
+	schemaPath := "schemas/schema.json"
+	for _, name := range []string{"agents", "mcp-servers", "agent-systems"} {
+		if err := configValidator.LoadSchema(name, schemaPath); err != nil {
+			// Try relative path from cmd package
+			schemaPath = "../schemas/schema.json"
+			if err2 := configValidator.LoadSchema(name, schemaPath); err2 != nil {
+				t.Skipf("Schema file not found, skipping: %v", err)
+			}
+		}
+	}
 	result, err := configValidator.ValidateFile(validFile)
 	if err != nil {
 		t.Fatalf("Unexpected error validating valid file: %v", err)

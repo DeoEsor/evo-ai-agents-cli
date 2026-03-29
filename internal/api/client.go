@@ -216,6 +216,21 @@ func (c *Client) Put(ctx context.Context, path string, body interface{}, result 
 	return c.parseResponse(resp, result)
 }
 
+// Patch выполняет PATCH запрос
+func (c *Client) Patch(ctx context.Context, path string, body interface{}, result interface{}) error {
+	resp, err := c.doRequest(ctx, RequestOptions{
+		Method: "PATCH",
+		Path:   path,
+		Body:   body,
+	})
+	if err != nil {
+		log.Error("Failed to execute PATCH request", "error", err, "url", fmt.Sprintf("%s%s", c.baseURL, path))
+		return err
+	}
+
+	return c.parseResponse(resp, result)
+}
+
 // Delete выполняет DELETE запрос
 func (c *Client) Delete(ctx context.Context, path string, result interface{}) error {
 	resp, err := c.doRequest(ctx, RequestOptions{

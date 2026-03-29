@@ -65,62 +65,6 @@ var getCmd = &cobra.Command{
 	},
 }
 
-// getCreatedByInfo получает информацию о создателе агента
-func getCreatedByInfo(ctx context.Context, container *di.Container, userID string) string {
-	if userID == "" {
-		return "Не указан"
-	}
-
-	config, err := container.GetConfig()
-	if err != nil {
-		return fmt.Sprintf("ID: %s (ошибка получения конфигурации)", userID)
-	}
-	if config.CustomerID == "" {
-		// Если нет customerID, возвращаем ID с пояснением
-		return fmt.Sprintf("ID: %s (CUSTOMER_ID не указан)", userID)
-	}
-
-	apiClient, err := container.GetAPI()
-	if err != nil {
-		return fmt.Sprintf("ID: %s (ошибка получения API клиента)", userID)
-	}
-	user, err := apiClient.Users.Get(ctx, config.CustomerID, userID)
-	if err != nil {
-		// При ошибке API тоже показываем ID
-		return fmt.Sprintf("ID: %s (ошибка получения данных)", userID)
-	}
-
-	return ui.FormatUserName(user.ID, user.FirstName, user.LastName, user.Email)
-}
-
-// getUpdatedByInfo получает информацию об изменяющем агента
-func getUpdatedByInfo(ctx context.Context, container *di.Container, userID string) string {
-	if userID == "" {
-		return "Не указан"
-	}
-
-	config, err := container.GetConfig()
-	if err != nil {
-		return fmt.Sprintf("ID: %s (ошибка получения конфигурации)", userID)
-	}
-	if config.CustomerID == "" {
-		// Если нет customerID, возвращаем ID с пояснением
-		return fmt.Sprintf("ID: %s (CUSTOMER_ID не указан)", userID)
-	}
-
-	apiClient, err := container.GetAPI()
-	if err != nil {
-		return fmt.Sprintf("ID: %s (ошибка получения API клиента)", userID)
-	}
-	user, err := apiClient.Users.Get(ctx, config.CustomerID, userID)
-	if err != nil {
-		// При ошибке API тоже показываем ID
-		return fmt.Sprintf("ID: %s (ошибка получения данных)", userID)
-	}
-
-	return ui.FormatUserName(user.ID, user.FirstName, user.LastName, user.Email)
-}
-
 // isTerminal проверяет, является ли терминал терминалом
 func isTerminal() bool {
 	return term.IsTerminal(int(os.Stdout.Fd()))
