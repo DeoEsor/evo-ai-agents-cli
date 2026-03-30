@@ -7,8 +7,8 @@ import (
 	"text/tabwriter"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/log"
 	"github.com/cloud-ru/evo-ai-agents-cli/internal/di"
+	"github.com/cloud-ru/evo-ai-agents-cli/internal/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -21,15 +21,22 @@ var historyCmd = &cobra.Command{
 		ctx := context.Background()
 		agentID := args[0]
 
+		errorHandler := errors.NewHandler()
 		container := di.GetContainer()
 		apiClient, err := container.GetAPI()
 		if err != nil {
-			log.Fatal("Failed to get API client", "error", err)
+			appErr := errorHandler.WrapAPIError(err, "API_CLIENT_ERROR", "Ошибка получения API клиента")
+			appErr = appErr.WithSuggestions(agentAPISuggestions()...)
+			fmt.Println(errorHandler.HandlePlain(appErr))
+			os.Exit(1)
 		}
 
 		history, err := apiClient.Agents.GetHistory(ctx, agentID)
 		if err != nil {
-			log.Fatal("Failed to get agent history", "error", err, "agent_id", agentID)
+			appErr := errorHandler.WrapAPIError(err, "AGENT_HISTORY_FAILED", "Ошибка получения истории агента")
+			appErr = appErr.WithSuggestions(agentAPISuggestions()...)
+			fmt.Println(errorHandler.HandlePlain(appErr))
+			os.Exit(1)
 		}
 
 		headerStyle := lipgloss.NewStyle().

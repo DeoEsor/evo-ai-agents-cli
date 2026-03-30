@@ -86,8 +86,13 @@ func (s *Scaffolder) CreateProject(projectType, projectName, targetPath, cicdTyp
 		CICDType:    cicdType,
 	}
 
-	// Get template directory
-	templateDir := filepath.Join("templates", projectType)
+	// Get template directory; for agents without a framework, default to adk
+	var templateDir string
+	if projectType == "agent" {
+		templateDir = filepath.Join("templates", "agent-frameworks", "adk")
+	} else {
+		templateDir = filepath.Join("templates", projectType)
+	}
 
 	// Create target directory
 	if err := os.MkdirAll(targetPath, 0755); err != nil {
@@ -295,6 +300,7 @@ func (s *Scaffolder) processTemplate(content string, data *ProjectData) (string,
 
 // GetAvailableTemplates returns the list of available project templates
 func (s *Scaffolder) GetAvailableTemplates() ([]string, error) {
+	seen := make(map[string]bool)
 	var templates []string
 
 	err := fs.WalkDir(s.templates, "templates", func(path string, d fs.DirEntry, err error) error {
@@ -302,13 +308,19 @@ func (s *Scaffolder) GetAvailableTemplates() ([]string, error) {
 			return err
 		}
 
-		// Check if this is a template directory (not a file)
 		if d.IsDir() && path != "templates" {
-			// Extract template name from path
 			parts := strings.Split(path, "/")
 			if len(parts) >= 2 {
 				templateName := parts[1]
-				templates = append(templates, templateName)
+				if !seen[templateName] {
+					seen[templateName] = true
+					templates = append(templates, templateName)
+				}
+				// Expose "agent" as a virtual template backed by agent-frameworks
+				if templateName == "agent-frameworks" && !seen["agent"] {
+					seen["agent"] = true
+					templates = append(templates, "agent")
+				}
 			}
 		}
 
@@ -326,8 +338,14 @@ func (s *Scaffolder) GetAvailableTemplates() ([]string, error) {
 func (s *Scaffolder) ValidateTemplate(templateName string) error {
 	templatePath := filepath.Join("templates", templateName)
 
-	// Check if template directory exists
 	if _, err := s.templates.ReadDir(templatePath); err != nil {
+		// For agent type, try agent-frameworks/adk as default
+		if templateName == "agent" {
+			altPath := filepath.Join("templates", "agent-frameworks", "adk")
+			if _, err2 := s.templates.ReadDir(altPath); err2 == nil {
+				return nil
+			}
+		}
 		return fmt.Errorf("template '%s' not found", templateName)
 	}
 

@@ -6,9 +6,10 @@ import (
 	"os"
 	"text/tabwriter"
 
+
 	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/log"
 	"github.com/cloud-ru/evo-ai-agents-cli/internal/di"
+	"github.com/cloud-ru/evo-ai-agents-cli/internal/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -22,17 +23,22 @@ var historyCmd = &cobra.Command{
 		ctx := context.Background()
 		serverID := args[0]
 
-		// Получаем историю MCP сервера
-		// Получаем API клиент из DI контейнера
+		errorHandler := errors.NewHandler()
 		container := di.GetContainer()
 		apiClient, err := container.GetAPI()
-	if err != nil {
-		log.Fatal("Failed to get API client", "error", err)
-	}
+		if err != nil {
+			appErr := errorHandler.WrapAPIError(err, "API_CLIENT_ERROR", "Ошибка получения API клиента")
+			appErr = appErr.WithSuggestions(mcpAPISuggestions()...)
+			fmt.Println(errorHandler.HandlePlain(appErr))
+			os.Exit(1)
+		}
 
 		history, err := apiClient.MCPServers.GetHistory(ctx, serverID)
 		if err != nil {
-			log.Fatal("Failed to get MCP server history", "error", err, "server_id", serverID)
+			appErr := errorHandler.WrapAPIError(err, "MCP_SERVER_HISTORY_FAILED", "Ошибка получения истории MCP сервера")
+			appErr = appErr.WithSuggestions(mcpAPISuggestions()...)
+			fmt.Println(errorHandler.HandlePlain(appErr))
+			os.Exit(1)
 		}
 
 		// Создаем стили для вывода

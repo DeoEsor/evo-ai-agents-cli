@@ -7,9 +7,9 @@ import (
 	"os"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/log"
 	"github.com/cloud-ru/evo-ai-agents-cli/internal/api"
 	"github.com/cloud-ru/evo-ai-agents-cli/internal/di"
+	"github.com/cloud-ru/evo-ai-agents-cli/internal/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -27,13 +27,16 @@ var updateCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx := context.Background()
 		agentID := args[0]
+		errorHandler := errors.NewHandler()
 
 		var req *api.AgentUpdateRequest
 
 		if updateConfigFile != "" {
 			data, err := os.ReadFile(updateConfigFile)
 			if err != nil {
-				log.Fatal("Failed to read config file", "error", err, "file", updateConfigFile)
+				appErr := errorHandler.WrapFileSystemError(err, "CONFIG_READ_ERROR", "Ошибка чтения файла конфигурации")
+				fmt.Println(errorHandler.HandlePlain(appErr))
+				os.Exit(1)
 			}
 
 			var config struct {
@@ -44,7 +47,9 @@ var updateCmd = &cobra.Command{
 			}
 
 			if err := json.Unmarshal(data, &config); err != nil {
-				log.Fatal("Failed to parse config file", "error", err)
+				appErr := errorHandler.WrapValidationError(err, "CONFIG_PARSE_ERROR", "Ошибка парсинга файла конфигурации")
+				fmt.Println(errorHandler.HandlePlain(appErr))
+				os.Exit(1)
 			}
 
 			req = &api.AgentUpdateRequest{
@@ -66,12 +71,18 @@ var updateCmd = &cobra.Command{
 		container := di.GetContainer()
 		apiClient, err := container.GetAPI()
 		if err != nil {
-			log.Fatal("Failed to get API client", "error", err)
+			appErr := errorHandler.WrapAPIError(err, "API_CLIENT_ERROR", "Ошибка получения API клиента")
+			appErr = appErr.WithSuggestions(agentAPISuggestions()...)
+			fmt.Println(errorHandler.HandlePlain(appErr))
+			os.Exit(1)
 		}
 
 		agent, err := apiClient.Agents.Update(ctx, agentID, req)
 		if err != nil {
-			log.Fatal("Failed to update agent", "error", err, "agent_id", agentID)
+			appErr := errorHandler.WrapAPIError(err, "AGENT_UPDATE_FAILED", "Ошибка обновления агента")
+			appErr = appErr.WithSuggestions(agentAPISuggestions()...)
+			fmt.Println(errorHandler.HandlePlain(appErr))
+			os.Exit(1)
 		}
 
 		successStyle := lipgloss.NewStyle().

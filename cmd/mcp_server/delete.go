@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	"os"
+
 	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/log"
 	"github.com/cloud-ru/evo-ai-agents-cli/internal/di"
+	"github.com/cloud-ru/evo-ai-agents-cli/internal/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -36,16 +38,21 @@ var deleteCmd = &cobra.Command{
 			}
 		}
 
-		// Удаляем MCP сервер
-		// Получаем API клиент из DI контейнера
+		errorHandler := errors.NewHandler()
 		container := di.GetContainer()
 		apiClient, err := container.GetAPI()
 		if err != nil {
-			log.Fatal("Failed to get API client", "error", err)
+			appErr := errorHandler.WrapAPIError(err, "API_CLIENT_ERROR", "Ошибка получения API клиента")
+			appErr = appErr.WithSuggestions(mcpAPISuggestions()...)
+			fmt.Println(errorHandler.HandlePlain(appErr))
+			os.Exit(1)
 		}
 
 		if err := apiClient.MCPServers.Delete(ctx, serverID); err != nil {
-			log.Fatal("Failed to delete MCP server", "error", err, "server_id", serverID)
+			appErr := errorHandler.WrapAPIError(err, "MCP_SERVER_DELETE_FAILED", "Ошибка удаления MCP сервера")
+			appErr = appErr.WithSuggestions(mcpAPISuggestions()...)
+			fmt.Println(errorHandler.HandlePlain(appErr))
+			os.Exit(1)
 		}
 
 		// Создаем стили для вывода

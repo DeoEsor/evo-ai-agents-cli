@@ -7,20 +7,24 @@ import (
 
 // MCPServer представляет MCP сервер
 type MCPServer struct {
-	ID           string                 `json:"id"`
-	Name         string                 `json:"name"`
-	Description  string                 `json:"description"`
-	Status       string                 `json:"status"`
-	StatusReason StatusReason           `json:"statusReason,omitempty"`
-	InstanceType InstanceType           `json:"instanceType,omitempty"`
-	ImageSource  map[string]interface{} `json:"imageSource,omitempty"`
-	Options      map[string]interface{} `json:"options,omitempty"`
-	Tools        []Tool                 `json:"tools,omitempty"`
-	PublicURL    string                 `json:"publicUrl,omitempty"`
-	CreatedAt    CustomTime             `json:"createdAt"`
-	UpdatedAt    CustomTime             `json:"updatedAt"`
-	CreatedBy    string                 `json:"createdBy,omitempty"`
-	UpdatedBy    string                 `json:"updatedBy,omitempty"`
+	ID                 string                 `json:"id"`
+	Name               string                 `json:"name"`
+	Description        string                 `json:"description"`
+	Status             string                 `json:"status"`
+	StatusReason       StatusReason           `json:"statusReason,omitempty"`
+	InstanceType       InstanceType           `json:"instanceType,omitempty"`
+	ImageSource        map[string]interface{} `json:"imageSource,omitempty"`
+	ExposedPorts       []int                  `json:"exposedPorts,omitempty"`
+	EnvironmentOptions map[string]interface{} `json:"environmentOptions,omitempty"`
+	Scaling            map[string]interface{} `json:"scaling,omitempty"`
+	IntegrationOptions map[string]interface{} `json:"integrationOptions,omitempty"`
+	Options            map[string]interface{} `json:"options,omitempty"`
+	Tools              []Tool                 `json:"tools,omitempty"`
+	PublicURL          string                 `json:"publicUrl,omitempty"`
+	CreatedAt          CustomTime             `json:"createdAt"`
+	UpdatedAt          CustomTime             `json:"updatedAt"`
+	CreatedBy          string                 `json:"createdBy,omitempty"`
+	UpdatedBy          string                 `json:"updatedBy,omitempty"`
 }
 
 // Tool представляет инструмент MCP сервера

@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	"os"
+
 	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/log"
 	"github.com/cloud-ru/evo-ai-agents-cli/internal/di"
+	"github.com/cloud-ru/evo-ai-agents-cli/internal/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -19,14 +21,21 @@ var suspendCmd = &cobra.Command{
 		ctx := context.Background()
 		agentID := args[0]
 
+		errorHandler := errors.NewHandler()
 		container := di.GetContainer()
 		apiClient, err := container.GetAPI()
 		if err != nil {
-			log.Fatal("Failed to get API client", "error", err)
+			appErr := errorHandler.WrapAPIError(err, "API_CLIENT_ERROR", "Ошибка получения API клиента")
+			appErr = appErr.WithSuggestions(agentAPISuggestions()...)
+			fmt.Println(errorHandler.HandlePlain(appErr))
+			os.Exit(1)
 		}
 
 		if err := apiClient.Agents.Suspend(ctx, agentID); err != nil {
-			log.Fatal("Failed to suspend agent", "error", err, "agent_id", agentID)
+			appErr := errorHandler.WrapAPIError(err, "AGENT_SUSPEND_FAILED", "Ошибка приостановки агента")
+			appErr = appErr.WithSuggestions(agentAPISuggestions()...)
+			fmt.Println(errorHandler.HandlePlain(appErr))
+			os.Exit(1)
 		}
 
 		warningStyle := lipgloss.NewStyle().

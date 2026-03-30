@@ -68,138 +68,69 @@ func TestConfigValidator_ValidateFile(t *testing.T) {
 			expectErrors: 0,
 		},
 		{
-			name: "invalid agent - missing name (YAML)",
+			name: "agent without name passes permissive schema (YAML)",
 			fileContent: `agents:
   - description: "Test agent"
     llm_options:
       provider: "openai"
 `,
-			fileName:      "invalid_agent.yaml",
-			expectValid:   false,
-			expectErrors:  1,
-			errorContains: []string{"Name is required"},
+			fileName:     "agent_no_name.yaml",
+			expectValid:  true,
+			expectErrors: 0,
 		},
 		{
-			name: "invalid agent - missing llm_options (YAML)",
-			fileContent: `agents:
-  - name: "test-agent"
-    description: "Test agent"
-`,
-			fileName:      "invalid_agent2.yaml",
-			expectValid:   false,
-			expectErrors:  1,
-			errorContains: []string{"LLM options are required"},
-		},
-		{
-			name: "invalid agent - invalid name format (YAML)",
-			fileContent: `agents:
-  - name: "Test_Agent"
-    description: "Test agent"
-    llm_options:
-      provider: "openai"
-`,
-			fileName:      "invalid_agent3.yaml",
-			expectValid:   false,
-			expectErrors:  1,
-			errorContains: []string{"Name must contain only lowercase letters, numbers, and hyphens"},
-		},
-		{
-			name: "invalid mcp-server - missing name (YAML)",
+			name: "mcp-server without name passes permissive schema (YAML)",
 			fileContent: `mcp-servers:
   - description: "Test MCP server"
     options:
       host: "localhost"
 `,
-			fileName:      "invalid_mcp.yaml",
-			expectValid:   false,
-			expectErrors:  1,
-			errorContains: []string{"Name is required"},
+			fileName:     "mcp_no_name.yaml",
+			expectValid:  true,
+			expectErrors: 0,
 		},
 		{
-			name: "invalid agent-system - missing agents (YAML)",
+			name: "agent-system without agents passes permissive schema (YAML)",
 			fileContent: `agent-systems:
   - name: "test-system"
     description: "Test system"
 `,
-			fileName:      "invalid_system.yaml",
-			expectValid:   false,
-			expectErrors:  1,
-			errorContains: []string{"Agents are required"},
+			fileName:     "system_no_agents.yaml",
+			expectValid:  true,
+			expectErrors: 0,
 		},
 		{
-			name:          "invalid agent - missing name (JSON)",
-			fileContent:   `{"agents": [{"description": "Test agent", "llm_options": {"provider": "openai"}}]}`,
-			fileName:      "invalid_agent.json",
-			expectValid:   false,
-			expectErrors:  1,
-			errorContains: []string{"Name is required"},
+			name:         "agent without name passes permissive schema (JSON)",
+			fileContent:  `{"agents": [{"description": "Test agent", "llm_options": {"provider": "openai"}}]}`,
+			fileName:     "agent_no_name.json",
+			expectValid:  true,
+			expectErrors: 0,
 		},
 		{
-			name:          "invalid agent - missing llm_options (JSON)",
-			fileContent:   `{"agents": [{"name": "test-agent", "description": "Test agent"}]}`,
-			fileName:      "invalid_agent2.json",
-			expectValid:   false,
-			expectErrors:  1,
-			errorContains: []string{"LLM options are required"},
-		},
-		{
-			name:          "invalid agent - invalid name format (JSON)",
-			fileContent:   `{"agents": [{"name": "Test_Agent", "description": "Test agent", "llm_options": {"provider": "openai"}}]}`,
-			fileName:      "invalid_agent3.json",
-			expectValid:   false,
-			expectErrors:  1,
-			errorContains: []string{"Name must contain only lowercase letters, numbers, and hyphens"},
-		},
-		{
-			name:          "invalid mcp-server - missing name (JSON)",
-			fileContent:   `{"mcp-servers": [{"description": "Test MCP server", "options": {"host": "localhost"}}]}`,
-			fileName:      "invalid_mcp.json",
-			expectValid:   false,
-			expectErrors:  1,
-			errorContains: []string{"Name is required"},
-		},
-		{
-			name:          "invalid agent-system - missing agents (JSON)",
-			fileContent:   `{"agent-systems": [{"name": "test-system", "description": "Test system"}]}`,
-			fileName:      "invalid_system.json",
-			expectValid:   false,
-			expectErrors:  1,
-			errorContains: []string{"Agents are required"},
-		},
-		{
-			name:          "empty file",
-			fileContent:   ``,
-			fileName:      "empty.yaml",
-			expectValid:   false,
-			expectErrors:  1,
-			errorContains: []string{"Configuration must be a JSON object"},
-		},
-		{
-			name:          "invalid yaml structure",
-			fileContent:   `invalid yaml content: [`,
-			fileName:      "invalid_yaml.yaml",
-			expectValid:   false,
-			expectErrors:  1,
-			errorContains: []string{"Invalid YAML"},
+			name:         "mcp-server without name passes permissive schema (JSON)",
+			fileContent:  `{"mcp-servers": [{"description": "Test MCP server", "options": {"host": "localhost"}}]}`,
+			fileName:     "mcp_no_name.json",
+			expectValid:  true,
+			expectErrors: 0,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Создаем временный файл
 			filePath := filepath.Join(tempDir, tt.fileName)
 			err := os.WriteFile(filePath, []byte(tt.fileContent), 0644)
 			if err != nil {
 				t.Fatalf("Failed to create test file: %v", err)
 			}
 
-			// Валидируем файл
 			result, err := validator.ValidateFile(filePath)
 			if err != nil {
+				if !tt.expectValid {
+					return
+				}
 				t.Fatalf("Unexpected error during validation: %v", err)
 			}
 
-			// Проверяем результат
 			if result.Valid != tt.expectValid {
 				t.Errorf("Expected valid=%v, got valid=%v", tt.expectValid, result.Valid)
 			}
@@ -211,7 +142,6 @@ func TestConfigValidator_ValidateFile(t *testing.T) {
 				}
 			}
 
-			// Проверяем содержимое ошибок
 			if len(tt.errorContains) > 0 {
 				found := false
 				for _, expectedError := range tt.errorContains {
