@@ -13,10 +13,11 @@ import (
 type ProjectFormData struct {
 	ProjectName     string
 	Author          string
-	Framework       string // New field for agent framework selection
+	Framework       string
 	CICDType        string
-	DatabaseType    string // New field for database selection
-	ExternalAPIKeys string // New field for external API keys selection
+	DatabaseType    string
+	ExternalAPIKeys string // kept for backward compat, always empty
+	ModelName       string // Cloud.ru Foundation Models model
 	GitInit         bool
 	CreateEnv       bool
 	InstallDeps     bool
@@ -32,13 +33,13 @@ func RunProjectForm(projectType string, defaultProjectName ...string) (*ProjectF
 
 	// Form data with default values
 	formData := ProjectFormData{
-		Author:          defaultAuthor,
-		CICDType:        "both",
-		DatabaseType:    "none",
-		ExternalAPIKeys: "none",
-		GitInit:         true,
-		CreateEnv:       true,
-		InstallDeps:     false,
+		Author:       defaultAuthor,
+		CICDType:     "both",
+		DatabaseType: "postgresql",
+		ModelName:    "openai/gpt-4o",
+		GitInit:      true,
+		CreateEnv:    true,
+		InstallDeps:  false,
 	}
 
 	// Set default framework and project names
@@ -101,42 +102,37 @@ func RunProjectForm(projectType string, defaultProjectName ...string) (*ProjectF
 					).
 					Value(&formData.Framework),
 
-				// CI/CD system
-				huh.NewSelect[string]().
-					Title("🔧 CI/CD система").
-					Description("Выберите систему CI/CD для проекта").
-					Options(
-						huh.NewOption("GitLab CI", "gitlab"),
-						huh.NewOption("GitHub Actions", "github"),
-						huh.NewOption("Оба варианта", "both"),
-						huh.NewOption("Без CI/CD", "none"),
-					).
-					Value(&formData.CICDType),
+			// CI/CD system
+			huh.NewSelect[string]().
+				Title("🔧 CI/CD система").
+				Description("Выберите систему CI/CD для проекта").
+				Options(
+					huh.NewOption("GitLab CI", "gitlab"),
+					huh.NewOption("GitHub Actions", "github"),
+					huh.NewOption("Оба варианта", "both"),
+					huh.NewOption("Без CI/CD", "none"),
+				).
+				Value(&formData.CICDType),
 
-				// Database selection
-				huh.NewSelect[string]().
-					Title("🗄️ База данных").
-					Description("Выберите базу данных для хранения состояния агента").
-					Options(
-						huh.NewOption("Не использовать", "none"),
-						huh.NewOption("PostgreSQL", "postgresql"),
-						huh.NewOption("Redis", "redis"),
-					).
-					Value(&formData.DatabaseType),
+			// Foundation Models model selection
+			huh.NewSelect[string]().
+				Title("🧠 Модель Foundation Models").
+				Description("Выберите LLM модель Cloud.ru (https://foundation-models.api.cloud.ru/v1/models)").
+				Options(
+					huh.NewOption("GigaChat Pro", "gigachat/GigaChat-Pro"),
+					huh.NewOption("GigaChat Max", "gigachat/GigaChat-Max"),
+					huh.NewOption("GigaChat", "gigachat/GigaChat"),
+					huh.NewOption("DeepSeek R1", "deepseek/deepseek-r1"),
+					huh.NewOption("DeepSeek V3", "deepseek/deepseek-v3"),
+					huh.NewOption("Qwen 2.5 72B", "qwen/qwen2.5-72b-instruct"),
+					huh.NewOption("Llama 3.3 70B", "meta-llama/llama-3.3-70b-instruct"),
+					huh.NewOption("Mistral Large", "mistralai/mistral-large-instruct"),
+					huh.NewOption("OpenAI GPT-4o", "openai/gpt-4o"),
+					huh.NewOption("OpenAI GPT-4o mini", "openai/gpt-4o-mini"),
+				).
+				Value(&formData.ModelName),
 
-				// External API Keys
-				huh.NewSelect[string]().
-					Title("🔑 Внешние API ключи").
-					Description("Выберите внешние API для интеграции").
-					Options(
-						huh.NewOption("Не использовать", "none"),
-						huh.NewOption("OpenAI", "openai"),
-						huh.NewOption("Anthropic", "anthropic"),
-						huh.NewOption("Оба (OpenAI + Anthropic)", "both"),
-					).
-					Value(&formData.ExternalAPIKeys),
-
-				// Git initialization
+			// Git initialization
 				huh.NewConfirm().
 					Title("📦 Инициализировать Git репозиторий").
 					Description("Создать git репозиторий и сделать первый коммит").

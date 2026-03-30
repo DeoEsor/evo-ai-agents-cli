@@ -1,201 +1,180 @@
 """
-{{.ProjectName}} - AI Agent using ADK Framework
-
-Этот модуль содержит основной агент, созданный с использованием ADK (Agent Development Kit).
+{{.ProjectName}} - AI Agent using ADK Framework + Cloud.ru Foundation Models
 """
 
 import asyncio
+import json
 import logging
-from typing import Any, Dict, List, Optional
+import os
+from contextlib import asynccontextmanager
 
-from adk import Agent, AgentConfig, AgentContext
-from adk.handlers import MessageHandler, CommandHandler
-from adk.tools import ToolRegistry
-from adk.monitoring import MetricsCollector
+import httpx
+import uvicorn
+from dotenv import load_dotenv
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from pydantic_settings import BaseSettings
 
-# Настройка логирования
+load_dotenv()
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-class {{.ProjectName}}Agent(Agent):
-    """
-    {{.ProjectName}} AI Agent
-    
-    Основной агент для {{.Description}}
-    """
-    
-    def __init__(self, config: AgentConfig):
-        super().__init__(config)
-        self.tool_registry = ToolRegistry()
-        self.metrics = MetricsCollector()
-        self._setup_handlers()
-        self._setup_tools()
-    
-    def _setup_handlers(self):
-        """Настройка обработчиков сообщений"""
-        self.add_handler(MessageHandler(self.handle_message))
-        self.add_handler(CommandHandler(self.handle_command))
-    
-    def _setup_tools(self):
-        """Настройка инструментов агента"""
-        # Добавьте здесь ваши инструменты
-        pass
-    
-    async def handle_message(self, context: AgentContext, message: str) -> str:
-        """
-        Обработка входящих сообщений
-        
-        Args:
-            context: Контекст агента
-            message: Входящее сообщение
-            
-        Returns:
-            Ответ агента
-        """
-        try:
-            # Логирование входящего сообщения
-            logger.info(f"Получено сообщение: {message}")
-            
-            # Сбор метрик
-            self.metrics.increment("messages_received")
-            
-            # Обработка сообщения
-            response = await self._process_message(message, context)
-            
-            # Логирование ответа
-            logger.info(f"Отправлен ответ: {response}")
-            
-            return response
-            
-        except Exception as e:
-            logger.error(f"Ошибка при обработке сообщения: {e}")
-            self.metrics.increment("errors")
-            return "Извините, произошла ошибка при обработке вашего запроса."
-    
-    async def handle_command(self, context: AgentContext, command: str, args: List[str]) -> str:
-        """
-        Обработка команд
-        
-        Args:
-            context: Контекст агента
-            command: Команда
-            args: Аргументы команды
-            
-        Returns:
-            Результат выполнения команды
-        """
-        try:
-            logger.info(f"Выполнение команды: {command} с аргументами: {args}")
-            
-            if command == "help":
-                return self._get_help()
-            elif command == "status":
-                return await self._get_status()
-            elif command == "metrics":
-                return await self._get_metrics()
-            else:
-                return f"Неизвестная команда: {command}"
-                
-        except Exception as e:
-            logger.error(f"Ошибка при выполнении команды: {e}")
-            return f"Ошибка при выполнении команды: {e}"
-    
-    async def _process_message(self, message: str, context: AgentContext) -> str:
-        """
-        Основная логика обработки сообщений
-        
-        Args:
-            message: Входящее сообщение
-            context: Контекст агента
-            
-        Returns:
-            Обработанный ответ
-        """
-        # Здесь должна быть основная логика вашего агента
-        # Например, интеграция с LLM, обработка естественного языка и т.д.
-        
-        # Пример простой обработки
-        if "привет" in message.lower():
-            return "Привет! Я {{.ProjectName}} агент. Чем могу помочь?"
-        elif "помощь" in message.lower():
-            return self._get_help()
-        else:
-            return f"Я получил ваше сообщение: '{message}'. Как я могу помочь?"
-    
-    def _get_help(self) -> str:
-        """Получить справку по командам"""
-        return """
-Доступные команды:
-- help - показать эту справку
-- status - показать статус агента
-- metrics - показать метрики
+class Settings(BaseSettings):
+    agent_name: str = "{{.ProjectName}}"
+    foundation_models_endpoint: str = "https://foundation-models.api.cloud.ru/v1"
+    model_name: str = "{{.ModelName}}"
+    iam_key_id: str = ""
+    iam_secret: str = ""
+    iam_endpoint: str = "https://iam.api.cloud.ru"
+    database_url: str = "postgresql://agent:agent@localhost:5432/{{.ProjectName}}_db"
+    debug: bool = True
+    host: str = "0.0.0.0"
+    port: int = 8000
 
-Доступные функции:
-- Обработка текстовых сообщений
-- Выполнение команд
-- Сбор метрик и мониторинг
-"""
-    
-    async def _get_status(self) -> str:
-        """Получить статус агента"""
-        return f"""
-Статус агента {{.ProjectName}}:
-- Статус: Активен
-- Обработано сообщений: {self.metrics.get_counter('messages_received')}
-- Ошибок: {self.metrics.get_counter('errors')}
-- Время работы: {self.metrics.get_uptime()}
-"""
-    
-    async def _get_metrics(self) -> str:
-        """Получить метрики агента"""
-        metrics = self.metrics.get_all_metrics()
-        return f"""
-Метрики агента {{.ProjectName}}:
-{metrics}
-"""
-    
-    async def start(self):
-        """Запуск агента"""
-        logger.info(f"Запуск агента {{.ProjectName}}")
-        await super().start()
-        logger.info("Агент успешно запущен")
-    
-    async def stop(self):
-        """Остановка агента"""
-        logger.info(f"Остановка агента {{.ProjectName}}")
-        await super().stop()
-        logger.info("Агент остановлен")
+    class Config:
+        env_file = ".env"
 
 
-async def main():
-    """Основная функция для запуска агента"""
-    # Конфигурация агента
-    config = AgentConfig(
-        name="{{.ProjectName}}",
-        description="{{.Description}}",
-        version="1.0.0",
-        host="0.0.0.0",
-        port=8000,
-        debug=True
+settings = Settings()
+
+
+class FoundationModelsClient:
+    """Cloud.ru Foundation Models API client (OpenAI-compatible)."""
+
+    def __init__(self, endpoint: str, model: str):
+        self.endpoint = endpoint.rstrip("/")
+        self.model = model
+        self.client = httpx.AsyncClient(timeout=60.0)
+        self._token: str | None = None
+
+    async def _get_token(self) -> str:
+        """Get IAM token for authentication."""
+        if self._token:
+            return self._token
+        if not settings.iam_key_id or not settings.iam_secret:
+            raise ValueError("IAM_KEY_ID and IAM_SECRET must be set")
+        resp = await self.client.post(
+            f"{settings.iam_endpoint}/iam/v1/auth/token",
+            json={"keyId": settings.iam_key_id, "secret": settings.iam_secret},
+        )
+        resp.raise_for_status()
+        self._token = resp.json().get("access_token", "")
+        return self._token
+
+    async def chat(self, messages: list[dict], temperature: float = 0.7) -> str:
+        """Send chat completion request to Foundation Models API."""
+        token = await self._get_token()
+        resp = await self.client.post(
+            f"{self.endpoint}/chat/completions",
+            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+            json={
+                "model": self.model,
+                "messages": messages,
+                "temperature": temperature,
+            },
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        return data["choices"][0]["message"]["content"]
+
+    async def list_models(self) -> list[dict]:
+        """List available models."""
+        token = await self._get_token()
+        resp = await self.client.get(
+            f"{self.endpoint}/models",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        resp.raise_for_status()
+        return resp.json().get("data", [])
+
+    async def close(self):
+        await self.client.aclose()
+
+
+fm_client: FoundationModelsClient | None = None
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global fm_client
+    fm_client = FoundationModelsClient(
+        endpoint=settings.foundation_models_endpoint,
+        model=settings.model_name,
     )
-    
-    # Создание и запуск агента
-    agent = {{.ProjectName}}Agent(config)
-    
+    logger.info("Agent %s started with model %s", settings.agent_name, settings.model_name)
+    yield
+    if fm_client:
+        await fm_client.close()
+    logger.info("Agent %s stopped", settings.agent_name)
+
+
+app = FastAPI(
+    title=f"{settings.agent_name} Agent",
+    description="{{.Description}}",
+    version="1.0.0",
+    lifespan=lifespan,
+)
+
+
+class ProcessRequest(BaseModel):
+    message: str
+    temperature: float = 0.7
+    system_prompt: str = "Ты полезный AI ассистент. Отвечай на русском языке."
+
+
+class ProcessResponse(BaseModel):
+    response: str
+    model: str
+
+
+@app.post("/agent/process", response_model=ProcessResponse)
+async def process_message(req: ProcessRequest):
+    """Process a message through the AI agent."""
+    if not fm_client:
+        raise HTTPException(status_code=503, detail="Agent not initialized")
     try:
-        await agent.start()
-        logger.info("Агент запущен. Нажмите Ctrl+C для остановки.")
-        
-        # Ожидание сигнала остановки
-        while True:
-            await asyncio.sleep(1)
-            
-    except KeyboardInterrupt:
-        logger.info("Получен сигнал остановки")
-    finally:
-        await agent.stop()
+        messages = [
+            {"role": "system", "content": req.system_prompt},
+            {"role": "user", "content": req.message},
+        ]
+        response = await fm_client.chat(messages, temperature=req.temperature)
+        return ProcessResponse(response=response, model=settings.model_name)
+    except httpx.HTTPStatusError as e:
+        logger.error("Foundation Models API error: %s", e)
+        raise HTTPException(status_code=e.response.status_code, detail=str(e))
+    except Exception as e:
+        logger.error("Agent processing error: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/agent/models")
+async def list_models():
+    """List available Foundation Models."""
+    if not fm_client:
+        raise HTTPException(status_code=503, detail="Agent not initialized")
+    try:
+        models = await fm_client.list_models()
+        return {"models": models}
+    except Exception as e:
+        logger.error("Error listing models: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/health")
+async def health():
+    return {"status": "ok", "agent": settings.agent_name, "model": settings.model_name}
+
+
+def main():
+    uvicorn.run(
+        "src.agent:app",
+        host=settings.host,
+        port=settings.port,
+        reload=settings.debug,
+    )
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

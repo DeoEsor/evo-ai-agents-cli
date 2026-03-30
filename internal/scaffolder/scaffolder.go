@@ -32,13 +32,14 @@ type ScaffolderConfig struct {
 type ProjectData struct {
 	ProjectName     string
 	ProjectType     string
-	Framework       string // New field for agent framework
+	Framework       string
 	Author          string
 	Year            string
 	CICDType        string
-	DatabaseType    string // New field for database selection
-	ExternalAPIKeys string // New field for external API keys selection
-	Description     string // New field for project description
+	DatabaseType    string
+	ExternalAPIKeys string
+	ModelName       string // Cloud.ru Foundation Models model name
+	Description     string
 }
 
 // NewScaffolder creates a new scaffolder instance
@@ -109,7 +110,7 @@ func (s *Scaffolder) CreateProject(projectType, projectName, targetPath, cicdTyp
 }
 
 // CreateProjectWithOptions creates a new project from template with additional options
-func (s *Scaffolder) CreateProjectWithOptions(projectType, projectName, targetPath, cicdType, framework, databaseType, externalAPIKeys string, options []string) error {
+func (s *Scaffolder) CreateProjectWithOptions(projectType, projectName, targetPath, cicdType, framework, databaseType, externalAPIKeys, modelName string, options []string) error {
 	// log.Info("Creating project", "type", projectType, "name", projectName, "path", targetPath)
 
 	// Validate inputs
@@ -127,6 +128,7 @@ func (s *Scaffolder) CreateProjectWithOptions(projectType, projectName, targetPa
 		CICDType:        cicdType,
 		DatabaseType:    databaseType,
 		ExternalAPIKeys: externalAPIKeys,
+		ModelName:       modelName,
 		Description:     s.getProjectDescription(projectType, framework),
 	}
 
