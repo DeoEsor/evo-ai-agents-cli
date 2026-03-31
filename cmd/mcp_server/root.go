@@ -13,25 +13,27 @@ var (
 var RootCMD = &cobra.Command{
 	Use:   "mcp-servers",
 	Short: "Управление MCP серверами",
-	Long: `Управление MCP (Model Context Protocol) серверами.
-
-MCP серверы предоставляют контекст и инструменты для AI агентов.
-Эта команда позволяет создавать, настраивать и управлять MCP серверами
-в вашем проекте.
+	Long: `Управление MCP (Model Context Protocol) серверами в Cloud.ru.
 
 Доступные операции:
-• list - Просмотр списка серверов
-• get - Получение информации о сервере
-• create - Создание нового сервера
-• update - Обновление существующего сервера
-• delete - Удаление сервера
-• resume - Возобновление работы сервера
-• suspend - Приостановка сервера
+• list          - Просмотр списка серверов
+• get           - Получение информации о сервере
+• create        - Создание нового сервера
+• update        - Обновление существующего сервера
+• delete        - Удаление сервера
+• resume        - Возобновление работы сервера
+• suspend       - Приостановка сервера
+• history       - История операций сервера
+• deploy        - Развертывание серверов из YAML
+• tools         - Список инструментов сервера
+• execute       - Вызов инструмента сервера
+• completion    - Генерация скрипта автодополнения
 
-Примеры использования:
+Примеры:
   ai-agents-cli mcp-servers list
-  ai-agents-cli mcp-servers get server-id
-  ai-agents-cli mcp-servers create --name my-server`,
+  ai-agents-cli mcp-servers get <server-id>
+  ai-agents-cli mcp-servers tools <server-id>
+  ai-agents-cli mcp-servers deploy mcp-servers.yaml`,
 	Run: func(cmd *cobra.Command, args []string) {
 		log.Debug("Команда MCP серверов вызвана без подкоманды")
 		// Показываем справку если нет подкоманд

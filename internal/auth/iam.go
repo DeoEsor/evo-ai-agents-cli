@@ -140,9 +140,12 @@ func (s *IAMAuthService) refreshToken(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("failed to parse token response: %w", err)
 	}
 
-	// Сохраняем токен с запасом времени (55 минут)
 	s.token = tokenResp.AccessToken
-	s.expiresAt = time.Now().Add(time.Duration(tokenResp.ExpiresIn-300) * time.Second) // 5 минут запаса
+	margin := tokenResp.ExpiresIn - 300
+	if margin < 60 {
+		margin = 60
+	}
+	s.expiresAt = time.Now().Add(time.Duration(margin) * time.Second)
 
 	log.Debug("Токен успешно получен", "expires_at", s.expiresAt, "expires_in", tokenResp.ExpiresIn)
 

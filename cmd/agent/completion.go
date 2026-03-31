@@ -1,30 +1,41 @@
 package agent
 
 import (
-	"github.com/cloud-ru/evo-ai-agents-cli/localizations"
-	"github.com/cloud-ru/evo-ai-agents-cli/localizations/i18n_labels"
+	"os"
 
 	"github.com/spf13/cobra"
 )
 
-// completionCmd represents the completion command
 var completionCmd = &cobra.Command{
-	Use:   i18n_labels.CompletionCommandLabelName,
-	Short: localizations.Localization.Get(i18n_labels.CompletionShortDescLabelName),
-	Long:  localizations.Localization.Get(i18n_labels.CompletionLongDescCommandName),
-	Run:   func(cmd *cobra.Command, args []string) {},
+	Use:   "completion [bash|zsh|fish|powershell]",
+	Short: "Генерация скрипта автодополнения для shell",
+	Long: `Генерация скрипта автодополнения для указанной оболочки.
+
+Примеры:
+  # Bash
+  ai-agents-cli agents completion bash > /etc/bash_completion.d/ai-agents-cli-agents
+  
+  # Zsh
+  ai-agents-cli agents completion zsh > "${fpath[1]}/_ai-agents-cli-agents"
+  
+  # Fish
+  ai-agents-cli agents completion fish | source`,
+	Args:      cobra.ExactArgs(1),
+	ValidArgs: []string{"bash", "zsh", "fish", "powershell"},
+	Run: func(cmd *cobra.Command, args []string) {
+		switch args[0] {
+		case "bash":
+			RootCMD.GenBashCompletion(os.Stdout)
+		case "zsh":
+			RootCMD.GenZshCompletion(os.Stdout)
+		case "fish":
+			RootCMD.GenFishCompletion(os.Stdout, true)
+		case "powershell":
+			RootCMD.GenPowerShellCompletion(os.Stdout)
+		}
+	},
 }
 
 func init() {
 	RootCMD.AddCommand(completionCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// completionCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// completionCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
