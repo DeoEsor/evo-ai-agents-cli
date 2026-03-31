@@ -46,7 +46,7 @@ var listCmd = &cobra.Command{
 
 			// Добавляем подсказки для решения проблемы
 			appErr = appErr.WithSuggestions(
-				"Проверьте переменные окружения: IAM_KEY_ID, IAM_SECRET_KEY, IAM_ENDPOINT",
+				"Проверьте переменные окружения: IAM_KEY_ID, IAM_SECRET, IAM_ENDPOINT",
 				"Убедитесь что вы авторизованы: ai-agents-cli auth login или в папке выполнения команды лежит .env файл с перемнными выше",
 				"Проверьте доступность API: curl -I $IAM_ENDPOINT",
 				"Обратитесь к администратору для получения учетных данных",

@@ -7,20 +7,24 @@ import (
 
 // MCPServer представляет MCP сервер
 type MCPServer struct {
-	ID           string                 `json:"id"`
-	Name         string                 `json:"name"`
-	Description  string                 `json:"description"`
-	Status       string                 `json:"status"`
-	StatusReason StatusReason           `json:"statusReason,omitempty"`
-	InstanceType InstanceType           `json:"instanceType,omitempty"`
-	ImageSource  map[string]interface{} `json:"imageSource,omitempty"`
-	Options      map[string]interface{} `json:"options,omitempty"`
-	Tools        []Tool                 `json:"tools,omitempty"`
-	PublicURL    string                 `json:"publicUrl,omitempty"`
-	CreatedAt    CustomTime             `json:"createdAt"`
-	UpdatedAt    CustomTime             `json:"updatedAt"`
-	CreatedBy    string                 `json:"createdBy,omitempty"`
-	UpdatedBy    string                 `json:"updatedBy,omitempty"`
+	ID                 string                 `json:"id"`
+	Name               string                 `json:"name"`
+	Description        string                 `json:"description"`
+	Status             string                 `json:"status"`
+	StatusReason       StatusReason           `json:"statusReason,omitempty"`
+	InstanceType       InstanceType           `json:"instanceType,omitempty"`
+	ImageSource        map[string]interface{} `json:"imageSource,omitempty"`
+	ExposedPorts       []int                  `json:"exposedPorts,omitempty"`
+	EnvironmentOptions map[string]interface{} `json:"environmentOptions,omitempty"`
+	Scaling            map[string]interface{} `json:"scaling,omitempty"`
+	IntegrationOptions map[string]interface{} `json:"integrationOptions,omitempty"`
+	Options            map[string]interface{} `json:"options,omitempty"`
+	Tools              []Tool                 `json:"tools,omitempty"`
+	PublicURL          string                 `json:"publicUrl,omitempty"`
+	CreatedAt          CustomTime             `json:"createdAt"`
+	UpdatedAt          CustomTime             `json:"updatedAt"`
+	CreatedBy          string                 `json:"createdBy,omitempty"`
+	UpdatedBy          string                 `json:"updatedBy,omitempty"`
 }
 
 // Tool представляет инструмент MCP сервера
@@ -32,16 +36,28 @@ type Tool struct {
 
 // MCPServerCreateRequest представляет запрос на создание MCP сервера
 type MCPServerCreateRequest struct {
-	Name        string                 `json:"name"`
-	Description string                 `json:"description,omitempty"`
-	Options     map[string]interface{} `json:"options"`
+	Name               string                 `json:"name"`
+	Description        string                 `json:"description,omitempty"`
+	InstanceTypeID     string                 `json:"instance_type_id,omitempty"`
+	ImageSource        map[string]interface{} `json:"image_source,omitempty"`
+	ExposedPorts       []int                  `json:"exposed_ports,omitempty"`
+	EnvironmentOptions map[string]interface{} `json:"environment_options,omitempty"`
+	Scaling            map[string]interface{} `json:"scaling,omitempty"`
+	IntegrationOptions map[string]interface{} `json:"integration_options,omitempty"`
+	Options            map[string]interface{} `json:"options,omitempty"`
 }
 
 // MCPServerUpdateRequest представляет запрос на обновление MCP сервера
 type MCPServerUpdateRequest struct {
-	Name        string                 `json:"name,omitempty"`
-	Description string                 `json:"description,omitempty"`
-	Options     map[string]interface{} `json:"options,omitempty"`
+	Name               string                 `json:"name,omitempty"`
+	Description        string                 `json:"description,omitempty"`
+	InstanceTypeID     string                 `json:"instance_type_id,omitempty"`
+	ImageSource        map[string]interface{} `json:"image_source,omitempty"`
+	ExposedPorts       []int                  `json:"exposed_ports,omitempty"`
+	EnvironmentOptions map[string]interface{} `json:"environment_options,omitempty"`
+	Scaling            map[string]interface{} `json:"scaling,omitempty"`
+	IntegrationOptions map[string]interface{} `json:"integration_options,omitempty"`
+	Options            map[string]interface{} `json:"options,omitempty"`
 }
 
 // MCPServerListResponse представляет ответ со списком MCP серверов
@@ -94,7 +110,7 @@ func (s *MCPServerService) Create(ctx context.Context, req *MCPServerCreateReque
 // Update обновляет существующий MCP сервер
 func (s *MCPServerService) Update(ctx context.Context, serverID string, req *MCPServerUpdateRequest) (*MCPServer, error) {
 	var result MCPServer
-	err := s.client.Put(ctx, fmt.Sprintf("/api/v1/%s/mcpServers/%s", s.client.projectID, serverID), req, &result)
+	err := s.client.Patch(ctx, fmt.Sprintf("/api/v1/%s/mcpServers/%s", s.client.projectID, serverID), req, &result)
 	return &result, err
 }
 
@@ -105,12 +121,12 @@ func (s *MCPServerService) Delete(ctx context.Context, serverID string) error {
 
 // Resume возобновляет работу MCP сервера
 func (s *MCPServerService) Resume(ctx context.Context, serverID string) error {
-	return s.client.Post(ctx, fmt.Sprintf("/api/v1/%s/mcpServers/resume/%s", s.client.projectID, serverID), nil, nil)
+	return s.client.Patch(ctx, fmt.Sprintf("/api/v1/%s/mcpServers/resume/%s", s.client.projectID, serverID), struct{}{}, nil)
 }
 
 // Suspend приостанавливает работу MCP сервера
 func (s *MCPServerService) Suspend(ctx context.Context, serverID string) error {
-	return s.client.Post(ctx, fmt.Sprintf("/api/v1/%s/mcpServers/suspend/%s", s.client.projectID, serverID), nil, nil)
+	return s.client.Patch(ctx, fmt.Sprintf("/api/v1/%s/mcpServers/suspend/%s", s.client.projectID, serverID), struct{}{}, nil)
 }
 
 // GetHistory возвращает историю операций MCP сервера

@@ -34,7 +34,7 @@ var listCmd = &cobra.Command{
 		if err != nil {
 			appErr := errorHandler.WrapAPIError(err, "API_CLIENT_ERROR", "Ошибка получения API клиента")
 			appErr = appErr.WithSuggestions(
-				"Проверьте переменные окружения: IAM_KEY_ID, IAM_SECRET_KEY, IAM_ENDPOINT",
+				"Проверьте переменные окружения: IAM_KEY_ID, IAM_SECRET, IAM_ENDPOINT",
 				"Убедитесь что вы авторизованы: ai-agents-cli auth login или в папке выполнения команды лежит .env файл с перемнными выше",
 				"Проверьте доступность API: curl -I $IAM_ENDPOINT",
 				"Обратитесь к администратору для получения учетных данных",
@@ -50,7 +50,7 @@ var listCmd = &cobra.Command{
 			if err != nil {
 				appErr := errorHandler.WrapAPIError(err, "SYSTEMS_LIST_FAILED", "Ошибка получения списка систем")
 				appErr = appErr.WithSuggestions(
-					"Проверьте переменные окружения: IAM_KEY_ID, IAM_SECRET_KEY, IAM_ENDPOINT",
+					"Проверьте переменные окружения: IAM_KEY_ID, IAM_SECRET, IAM_ENDPOINT",
 					"Убедитесь что вы авторизованы: ai-agents-cli auth login или в папке выполнения команды лежит .env файл с перемнными выше",
 					"Проверьте доступность API: curl -I $IAM_ENDPOINT",
 					"Обратитесь к администратору для получения учетных данных",
@@ -69,7 +69,7 @@ var listCmd = &cobra.Command{
 		if err = ui.ShowAgentSystemsListFromAPI(ctx, systemLimit, systemOffset); err != nil {
 			appErr := errorHandler.WrapAPIError(err, "SYSTEMS_TABLE_ERROR", "Ошибка отображения таблицы систем")
 			appErr = appErr.WithSuggestions(
-				"Проверьте переменные окружения: IAM_KEY_ID, IAM_SECRET_KEY, IAM_ENDPOINT",
+				"Проверьте переменные окружения: IAM_KEY_ID, IAM_SECRET, IAM_ENDPOINT",
 				"Убедитесь что вы авторизованы: ai-agents-cli auth login или в папке выполнения команды лежит .env файл с перемнными выше",
 				"Проверьте доступность API: curl -I $IAM_ENDPOINT",
 				"Обратитесь к администратору для получения учетных данных",

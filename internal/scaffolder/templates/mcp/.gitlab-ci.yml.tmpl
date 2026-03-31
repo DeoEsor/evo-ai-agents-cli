@@ -1,44 +1,81 @@
 stages:
+  - lint
   - test
   - build
   - deploy
 
 variables:
-  DOCKER_DRIVER: overlay2
-  DOCKER_TLS_CERTDIR: "/certs"
+  REGISTRY: cr.cloud.ru
+  IMAGE_NAME: $ARTIFACT_REGISTRY_ID/{{.ProjectName}}
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
 
-before_script:
-  - docker info
+cache:
+  paths:
+    - .cache/pip
 
+# ---------------------------------------------------------------------------
+# Lint
+# ---------------------------------------------------------------------------
+lint:
+  stage: lint
+  image: python:3.11-slim
+  before_script:
+    - pip install black flake8 isort
+  script:
+    - black --check src/
+    - isort --check-only src/
+    - flake8 src/ --max-line-length 120
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"
+
+# ---------------------------------------------------------------------------
+# Test
+# ---------------------------------------------------------------------------
 test:
   stage: test
-  image: python:3.9
-  script:
+  image: python:3.11-slim
+  before_script:
     - pip install -r requirements.txt
-    - python -m pytest tests/ -v
-  only:
-    - merge_requests
-    - main
-    - develop
+  script:
+    - python -m pytest tests/ -v --tb=short
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"
 
+# ---------------------------------------------------------------------------
+# Build & Push to Cloud.ru Artifact Registry
+# ---------------------------------------------------------------------------
 build:
   stage: build
   image: docker:latest
   services:
     - docker:dind
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+  before_script:
+    - echo "$IAM_SECRET" | docker login $REGISTRY -u "$IAM_KEY_ID" --password-stdin
   script:
-    - docker build -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA .
-    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
-  only:
-    - main
-    - develop
+    - docker build -t $REGISTRY/$IMAGE_NAME:$CI_COMMIT_SHA -t $REGISTRY/$IMAGE_NAME:latest .
+    - docker push $REGISTRY/$IMAGE_NAME:$CI_COMMIT_SHA
+    - docker push $REGISTRY/$IMAGE_NAME:latest
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"
 
+# ---------------------------------------------------------------------------
+# Deploy via ai-agents-cli
+# ---------------------------------------------------------------------------
 deploy:
   stage: deploy
   image: alpine:latest
+  before_script:
+    - wget -q https://github.com/cloud-ru/evo-ai-agents-cli/releases/latest/download/ai-agents-cli-linux -O /usr/local/bin/ai-agents-cli
+    - chmod +x /usr/local/bin/ai-agents-cli
   script:
-    - echo "Deploying {{.ProjectName}} MCP server to production"
-    - echo "Image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
-  only:
-    - main
-  when: manual
+    - ai-agents-cli validate mcp-servers.yaml
+    - ai-agents-cli mcp-servers deploy mcp-servers.yaml
+  environment:
+    name: production
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: manual

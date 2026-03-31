@@ -12,10 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	agentProjectPath string
-	agentAuthor      string
-)
+// Flags are intentionally omitted; all config comes from the interactive TUI form.
 
 // createAgentCmd represents the agent create command
 var createAgentCmd = &cobra.Command{
@@ -112,7 +109,7 @@ CI/CD пайплайнами и документацией.
 			Foreground(lipgloss.Color("240")).
 			Render("Создание проекта..."))
 
-		if err := scaffolderInstance.CreateProjectWithOptions("agent", projectName, targetPath, cicdTypeStr, framework, formData.DatabaseType, formData.ExternalAPIKeys, options); err != nil {
+		if err := scaffolderInstance.CreateProjectWithOptions("agent", projectName, targetPath, cicdTypeStr, framework, formData.DatabaseType, formData.ExternalAPIKeys, formData.ModelName, options); err != nil {
 			appErr := errorHandler.WrapFileSystemError(err, "PROJECT_CREATION_FAILED", "Ошибка создания проекта агента")
 			appErr = appErr.WithSuggestions(
 				"Проверьте права доступа к директории: ls -la "+targetPath,
@@ -153,13 +150,11 @@ CI/CD пайплайнами и документацией.
 
 3. Настройте переменные окружения:
    cp env.example .env
-   # Отредактируйте .env файл
-   # Добавьте API ключи для AI сервисов
+   # Укажите FM_API_KEY или IAM_KEY_ID + IAM_SECRET
 
-4. Запустите агента:
-   make run
-   # или
-   python src/agent.py
+4. Запустите через Docker Compose:
+   docker compose up -d --build
+   curl http://localhost:8000/health
 
 5. Для Docker:
    make docker-build
@@ -177,6 +172,4 @@ CI/CD пайплайнами и документацией.
 func init() {
 	RootCMD.AddCommand(createAgentCmd)
 
-	createAgentCmd.Flags().StringVarP(&agentProjectPath, "path", "p", "", "Путь для создания проекта (по умолчанию: текущая директория)")
-	createAgentCmd.Flags().StringVarP(&agentAuthor, "author", "a", "", "Автор проекта (по умолчанию: из git config или 'Cloud.ru Team')")
 }

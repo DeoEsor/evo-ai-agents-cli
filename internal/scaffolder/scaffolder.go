@@ -32,13 +32,14 @@ type ScaffolderConfig struct {
 type ProjectData struct {
 	ProjectName     string
 	ProjectType     string
-	Framework       string // New field for agent framework
+	Framework       string
 	Author          string
 	Year            string
 	CICDType        string
-	DatabaseType    string // New field for database selection
-	ExternalAPIKeys string // New field for external API keys selection
-	Description     string // New field for project description
+	DatabaseType    string
+	ExternalAPIKeys string
+	ModelName       string // Cloud.ru Foundation Models model name
+	Description     string
 }
 
 // NewScaffolder creates a new scaffolder instance
@@ -86,8 +87,13 @@ func (s *Scaffolder) CreateProject(projectType, projectName, targetPath, cicdTyp
 		CICDType:    cicdType,
 	}
 
-	// Get template directory
-	templateDir := filepath.Join("templates", projectType)
+	// Get template directory; for agents without a framework, default to adk
+	var templateDir string
+	if projectType == "agent" {
+		templateDir = filepath.Join("templates", "agent-frameworks", "adk")
+	} else {
+		templateDir = filepath.Join("templates", projectType)
+	}
 
 	// Create target directory
 	if err := os.MkdirAll(targetPath, 0755); err != nil {
@@ -104,7 +110,7 @@ func (s *Scaffolder) CreateProject(projectType, projectName, targetPath, cicdTyp
 }
 
 // CreateProjectWithOptions creates a new project from template with additional options
-func (s *Scaffolder) CreateProjectWithOptions(projectType, projectName, targetPath, cicdType, framework, databaseType, externalAPIKeys string, options []string) error {
+func (s *Scaffolder) CreateProjectWithOptions(projectType, projectName, targetPath, cicdType, framework, databaseType, externalAPIKeys, modelName string, options []string) error {
 	// log.Info("Creating project", "type", projectType, "name", projectName, "path", targetPath)
 
 	// Validate inputs
@@ -122,6 +128,7 @@ func (s *Scaffolder) CreateProjectWithOptions(projectType, projectName, targetPa
 		CICDType:        cicdType,
 		DatabaseType:    databaseType,
 		ExternalAPIKeys: externalAPIKeys,
+		ModelName:       modelName,
 		Description:     s.getProjectDescription(projectType, framework),
 	}
 
@@ -210,13 +217,14 @@ func (s *Scaffolder) processTemplateFiles(templateDir, targetPath string, data *
 			relPath != ".gitignore" &&
 			relPath != ".editorconfig" &&
 			relPath != ".env.example" &&
+			relPath != ".gitlab-ci.yml.tmpl" &&
 			relPath != ".gitlab-ci.yml" &&
 			!strings.HasPrefix(relPath, ".github/") {
 			return nil
 		}
 
 		// Skip CI/CD files based on CICDType
-		if relPath == ".gitlab-ci.yml" && data.CICDType != "gitlab" && data.CICDType != "both" {
+		if (relPath == ".gitlab-ci.yml" || relPath == ".gitlab-ci.yml.tmpl") && data.CICDType != "gitlab" && data.CICDType != "both" {
 			return nil
 		}
 		if strings.HasPrefix(relPath, ".github/") && data.CICDType != "github" && data.CICDType != "both" {
@@ -295,6 +303,7 @@ func (s *Scaffolder) processTemplate(content string, data *ProjectData) (string,
 
 // GetAvailableTemplates returns the list of available project templates
 func (s *Scaffolder) GetAvailableTemplates() ([]string, error) {
+	seen := make(map[string]bool)
 	var templates []string
 
 	err := fs.WalkDir(s.templates, "templates", func(path string, d fs.DirEntry, err error) error {
@@ -302,13 +311,19 @@ func (s *Scaffolder) GetAvailableTemplates() ([]string, error) {
 			return err
 		}
 
-		// Check if this is a template directory (not a file)
 		if d.IsDir() && path != "templates" {
-			// Extract template name from path
 			parts := strings.Split(path, "/")
 			if len(parts) >= 2 {
 				templateName := parts[1]
-				templates = append(templates, templateName)
+				if !seen[templateName] {
+					seen[templateName] = true
+					templates = append(templates, templateName)
+				}
+				// Expose "agent" as a virtual template backed by agent-frameworks
+				if templateName == "agent-frameworks" && !seen["agent"] {
+					seen["agent"] = true
+					templates = append(templates, "agent")
+				}
 			}
 		}
 
@@ -326,8 +341,14 @@ func (s *Scaffolder) GetAvailableTemplates() ([]string, error) {
 func (s *Scaffolder) ValidateTemplate(templateName string) error {
 	templatePath := filepath.Join("templates", templateName)
 
-	// Check if template directory exists
 	if _, err := s.templates.ReadDir(templatePath); err != nil {
+		// For agent type, try agent-frameworks/adk as default
+		if templateName == "agent" {
+			altPath := filepath.Join("templates", "agent-frameworks", "adk")
+			if _, err2 := s.templates.ReadDir(altPath); err2 == nil {
+				return nil
+			}
+		}
 		return fmt.Errorf("template '%s' not found", templateName)
 	}
 

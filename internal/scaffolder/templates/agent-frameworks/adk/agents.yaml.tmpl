@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=https://raw.githubusercontent.com/cloud-ru/evo-ai-agents-cli/refs/heads/main/schemas/schema.json?token=GHSAT0AAAAAADFVHSI2NPNFSMGLQ5FROLA42H7A23A
+# yaml-language-server: $schema=https://raw.githubusercontent.com/cloud-ru/evo-ai-agents-cli/refs/heads/main/schemas/schema.json
 
 agents:
   - name: "{{.ProjectName}}"
@@ -10,10 +10,10 @@ agents:
       systemPrompt: "You are a helpful AI agent built with ADK"
       llm:
         foundationModels:
-          modelName: "gpt-4o"
+          modelName: "{{.ModelName}}"
+          endpoint: "https://foundation-models.api.cloud.ru/v1"
       env:
         rawEnvs:
-          OPENAI_API_KEY: "${OPENAI_API_KEY}"
           ADK_ENV: "production"
       scaling:
         minScale: 1
@@ -27,4 +27,3 @@ agents:
         isEnabledLogging: true
       autoUpdateOptions:
         isEnabled: true
-

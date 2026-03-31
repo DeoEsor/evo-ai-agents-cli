@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=https://raw.githubusercontent.com/cloud-ru/evo-ai-agents-cli/refs/heads/main/schemas/schema.json?token=GHSAT0AAAAAADFVHSI2NPNFSMGLQ5FROLA42H7A23A
+# yaml-language-server: $schema=https://raw.githubusercontent.com/cloud-ru/evo-ai-agents-cli/refs/heads/main/schemas/schema.json
 # =============================================================================
 # Пример конфигурации MCP (Model Context Protocol) серверов
 # =============================================================================

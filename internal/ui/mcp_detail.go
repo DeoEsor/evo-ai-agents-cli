@@ -146,8 +146,13 @@ func formatMCPPorts(mcp *api.MCPServer) string {
 
 	info.WriteString("🔌 Порты:\n\n")
 
-	// ExposedPorts не доступен в структуре MCPServer
-	info.WriteString("Информация о портах не доступна\n")
+	if len(mcp.ExposedPorts) > 0 {
+		for i, port := range mcp.ExposedPorts {
+			info.WriteString(fmt.Sprintf("  %d. Порт %d\n", i+1, port))
+		}
+	} else {
+		info.WriteString("Нет открытых портов\n")
+	}
 
 	return info.String()
 }
@@ -158,8 +163,13 @@ func formatMCPScaling(mcp *api.MCPServer) string {
 
 	info.WriteString("📈 Настройки масштабирования:\n\n")
 
-	// Scaling не доступен в структуре MCPServer
-	info.WriteString("Настройки масштабирования не доступны\n")
+	if mcp.Scaling != nil && len(mcp.Scaling) > 0 {
+		for key, value := range mcp.Scaling {
+			info.WriteString(fmt.Sprintf("  🔧 %s: %v\n", key, value))
+		}
+	} else {
+		info.WriteString("Настройки масштабирования не заданы\n")
+	}
 
 	return info.String()
 }
@@ -170,8 +180,13 @@ func formatMCPEnvironment(mcp *api.MCPServer) string {
 
 	info.WriteString("🌿 Переменные окружения:\n\n")
 
-	// EnvironmentOptions не доступен в структуре MCPServer
-	info.WriteString("Переменные окружения не доступны\n")
+	if mcp.EnvironmentOptions != nil && len(mcp.EnvironmentOptions) > 0 {
+		for key, value := range mcp.EnvironmentOptions {
+			info.WriteString(fmt.Sprintf("  🔧 %s: %v\n", key, value))
+		}
+	} else {
+		info.WriteString("Переменные окружения не заданы\n")
+	}
 
 	return info.String()
 }
@@ -182,8 +197,13 @@ func formatMCPIntegration(mcp *api.MCPServer) string {
 
 	info.WriteString("🔗 Настройки интеграции:\n\n")
 
-	// IntegrationOptions не доступен в структуре MCPServer
-	info.WriteString("Настройки интеграции не доступны\n")
+	if mcp.IntegrationOptions != nil && len(mcp.IntegrationOptions) > 0 {
+		for key, value := range mcp.IntegrationOptions {
+			info.WriteString(fmt.Sprintf("  🔧 %s: %v\n", key, value))
+		}
+	} else {
+		info.WriteString("Настройки интеграции не заданы\n")
+	}
 
 	return info.String()
 }

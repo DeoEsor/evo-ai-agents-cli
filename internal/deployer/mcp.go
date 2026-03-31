@@ -12,9 +12,15 @@ import (
 
 // MCPServerConfig представляет конфигурацию MCP сервера из YAML
 type MCPServerConfig struct {
-	Name        string                 `yaml:"name"`
-	Description string                 `yaml:"description"`
-	Options     map[string]interface{} `yaml:"options"`
+	Name               string                 `yaml:"name"`
+	Description        string                 `yaml:"description"`
+	InstanceTypeID     string                 `yaml:"instanceTypeId"`
+	ImageSource        map[string]interface{} `yaml:"imageSource"`
+	ExposedPorts       []int                  `yaml:"exposedPorts"`
+	EnvironmentOptions map[string]interface{} `yaml:"environmentOptions"`
+	Scaling            map[string]interface{} `yaml:"scaling"`
+	IntegrationOptions map[string]interface{} `yaml:"integrationOptions"`
+	Options            map[string]interface{} `yaml:"options"`
 }
 
 // MCPDeployer обрабатывает развертывание MCP серверов
@@ -75,9 +81,15 @@ func (d *MCPDeployer) DeployMCPServers(ctx context.Context, filePath string, dry
 
 		// Конвертируем в структуру
 		serverConfig := MCPServerConfig{
-			Name:        getString(serverMap, "name"),
-			Description: getString(serverMap, "description"),
-			Options:     getMap(serverMap, "options"),
+			Name:               getString(serverMap, "name"),
+			Description:        getString(serverMap, "description"),
+			InstanceTypeID:     getString(serverMap, "instanceTypeId"),
+			ImageSource:        getMap(serverMap, "imageSource"),
+			ExposedPorts:       getIntSlice(serverMap, "exposedPorts"),
+			EnvironmentOptions: getMap(serverMap, "environmentOptions"),
+			Scaling:            getMap(serverMap, "scaling"),
+			IntegrationOptions: getMap(serverMap, "integrationOptions"),
+			Options:            getMap(serverMap, "options"),
 		}
 
 		if serverConfig.Name == "" {
@@ -97,7 +109,21 @@ func (d *MCPDeployer) DeployMCPServers(ctx context.Context, filePath string, dry
 	return results, nil
 }
 
-// deployMCPServer развертывает один MCP сервер
+// findExistingMCPServer ищет MCP сервер по имени
+func (d *MCPDeployer) findExistingMCPServer(ctx context.Context, name string) (*api.MCPServer, error) {
+	servers, err := d.api.MCPServers.List(ctx, 100, 0)
+	if err != nil {
+		return nil, err
+	}
+	for _, server := range servers.Data {
+		if server.Name == name {
+			return &server, nil
+		}
+	}
+	return nil, nil
+}
+
+// deployMCPServer развертывает один MCP сервер (create or update)
 func (d *MCPDeployer) deployMCPServer(ctx context.Context, config MCPServerConfig, dryRun bool) DeployResult {
 	log.Info("Deploying MCP server", "name", config.Name, "dry_run", dryRun)
 
@@ -108,14 +134,53 @@ func (d *MCPDeployer) deployMCPServer(ctx context.Context, config MCPServerConfi
 		}
 	}
 
-	// Создаем запрос для API
-	createReq := &api.MCPServerCreateRequest{
-		Name:        config.Name,
-		Description: config.Description,
-		Options:     config.Options,
+	existing, err := d.findExistingMCPServer(ctx, config.Name)
+	if err != nil {
+		log.Warn("Failed to check for existing MCP server, will attempt create", "name", config.Name, "error", err)
 	}
 
-	// Вызываем API
+	if existing != nil {
+		updateReq := &api.MCPServerUpdateRequest{
+			Name:               config.Name,
+			Description:        config.Description,
+			InstanceTypeID:     config.InstanceTypeID,
+			ImageSource:        config.ImageSource,
+			ExposedPorts:       config.ExposedPorts,
+			EnvironmentOptions: config.EnvironmentOptions,
+			Scaling:            config.Scaling,
+			IntegrationOptions: config.IntegrationOptions,
+			Options:            config.Options,
+		}
+
+		server, err := d.api.MCPServers.Update(ctx, existing.ID, updateReq)
+		if err != nil {
+			log.Error("Failed to update MCP server", "name", config.Name, "error", err)
+			return DeployResult{
+				Success: false,
+				Message: fmt.Sprintf("Failed to update MCP server: %s", config.Name),
+				Error:   err,
+			}
+		}
+
+		log.Info("MCP server updated successfully", "name", config.Name, "id", server.ID)
+		return DeployResult{
+			Success: true,
+			Message: fmt.Sprintf("Successfully updated MCP server: %s (ID: %s)", config.Name, server.ID),
+		}
+	}
+
+	createReq := &api.MCPServerCreateRequest{
+		Name:               config.Name,
+		Description:        config.Description,
+		InstanceTypeID:     config.InstanceTypeID,
+		ImageSource:        config.ImageSource,
+		ExposedPorts:       config.ExposedPorts,
+		EnvironmentOptions: config.EnvironmentOptions,
+		Scaling:            config.Scaling,
+		IntegrationOptions: config.IntegrationOptions,
+		Options:            config.Options,
+	}
+
 	server, err := d.api.MCPServers.Create(ctx, createReq)
 	if err != nil {
 		log.Error("Failed to create MCP server", "name", config.Name, "error", err)
@@ -222,5 +287,27 @@ func getMap(m map[string]interface{}, key string) map[string]interface{} {
 			return mapVal
 		}
 	}
-	return make(map[string]interface{})
+	return nil
+}
+
+// getIntSlice извлекает слайс int из map с проверкой типа
+func getIntSlice(m map[string]interface{}, key string) []int {
+	val, ok := m[key]
+	if !ok {
+		return nil
+	}
+	slice, ok := val.([]interface{})
+	if !ok {
+		return nil
+	}
+	var result []int
+	for _, item := range slice {
+		switch v := item.(type) {
+		case int:
+			result = append(result, v)
+		case float64:
+			result = append(result, int(v))
+		}
+	}
+	return result
 }

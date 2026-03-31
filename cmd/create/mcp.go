@@ -108,7 +108,7 @@ CI/CD пайплайнами и документацией.
 			Foreground(lipgloss.Color("240")).
 			Render("Создание проекта..."))
 
-		if err := scaffolderInstance.CreateProjectWithOptions("mcp", projectName, targetPath, cicdTypeStr, "", "none", "none", options); err != nil {
+		if err := scaffolderInstance.CreateProjectWithOptions("mcp", projectName, targetPath, cicdTypeStr, "", "none", "none", "", options); err != nil {
 			appErr := errorHandler.WrapFileSystemError(err, "PROJECT_CREATION_FAILED", "Ошибка создания проекта MCP")
 			appErr = appErr.WithSuggestions(
 				"Проверьте права доступа к директории: ls -la "+targetPath,

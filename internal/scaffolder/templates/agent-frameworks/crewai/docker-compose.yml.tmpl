@@ -8,12 +8,41 @@ services:
     environment:
       - PYTHONPATH=/app
       - PYTHONUNBUFFERED=1
+      - DATABASE_URL=postgresql://agent:agent@postgres:5432/{{.ProjectName}}_db
+      - FOUNDATION_MODELS_ENDPOINT=https://foundation-models.api.cloud.ru/v1
+      - MODEL_NAME={{.ModelName}}
+    env_file:
+      - .env
     volumes:
       - ./src:/app/src
-      - ./tests:/app/tests
+    depends_on:
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - {{.ProjectName}}-network
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: agent
+      POSTGRES_PASSWORD: agent
+      POSTGRES_DB: {{.ProjectName}}_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agent -d {{.ProjectName}}_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - {{.ProjectName}}-network
+
+volumes:
+  pgdata:
 
 networks:
   {{.ProjectName}}-network:

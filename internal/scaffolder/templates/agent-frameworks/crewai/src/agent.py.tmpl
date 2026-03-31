@@ -1,167 +1,121 @@
 """
-{{.ProjectName}} - AI Agent using CrewAI Framework
+{{.ProjectName}} - CrewAI Agent for Cloud.ru AI Agents
 
-Этот модуль содержит основной агент, созданный с использованием CrewAI.
+Multi-agent crew with coordinator and executor roles.
+Uses LiteLLM for Cloud.ru Foundation Models integration.
 """
 
-import asyncio
 import logging
-from typing import Any, Dict, List, Optional
+import os
+from typing import Dict, List, Optional
 
-from crewai import Agent, Task, Crew, Process
-from crewai.tools import BaseTool
-from langchain_openai import ChatOpenAI
+from crewai import Agent, Crew, Process, Task
+from dotenv import load_dotenv
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from pydantic_settings import BaseSettings, SettingsConfigDict
+import uvicorn
 
-# Настройка логирования
+load_dotenv()
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-class {{.ProjectName}}Agent:
-    """
-    {{.ProjectName}} AI Agent using CrewAI
-    
-    Основной агент для {{.Description}}
-    """
-    
-    def __init__(self):
-        self.llm = ChatOpenAI(
-            model="gpt-4",
-            temperature=0.7,
-            max_tokens=1000
-        )
-        self.crew = self._create_crew()
-    
-    def _create_crew(self) -> Crew:
-        """Создание команды агентов"""
-        
-        # Создание агентов
-        main_agent = Agent(
-            role="Главный агент",
-            goal="{{.Description}}",
-            backstory="Ты опытный AI агент, специализирующийся на {{.Description}}",
-            verbose=True,
-            allow_delegation=False,
-            llm=self.llm
-        )
-        
-        # Создание задач
-        main_task = Task(
-            description="Обработать запрос пользователя и предоставить полезный ответ",
-            agent=main_agent,
-            expected_output="Полезный и информативный ответ на запрос пользователя"
-        )
-        
-        # Создание команды
-        crew = Crew(
-            agents=[main_agent],
-            tasks=[main_task],
-            process=Process.sequential,
-            verbose=True
-        )
-        
-        return crew
-    
-    async def process_message(self, user_input: str) -> str:
-        """
-        Обработка сообщения пользователя
-        
-        Args:
-            user_input: Сообщение пользователя
-            
-        Returns:
-            Ответ агента
-        """
-        try:
-            logger.info(f"Получено сообщение: {user_input}")
-            
-            # Создание контекста для задачи
-            context = {
-                "user_input": user_input,
-                "conversation_history": [],
-                "current_context": {}
-            }
-            
-            # Выполнение задачи командой
-            result = self.crew.kickoff(inputs=context)
-            
-            logger.info(f"Сгенерирован ответ: {result}")
-            return str(result)
-            
-        except Exception as e:
-            logger.error(f"Ошибка при обработке сообщения: {e}")
-            return "Извините, произошла ошибка при обработке вашего запроса."
-    
-    async def get_help(self) -> str:
-        """Получить справку по командам"""
-        return """
-Доступные функции {{.ProjectName}} агента:
+class Settings(BaseSettings):
+    agent_name: str = "{{.ProjectName}}"
+    model_name: str = "{{.ModelName}}"
+    fm_api_key: str = ""
+    foundation_models_endpoint: str = "https://foundation-models.api.cloud.ru/v1"
+    debug: bool = True
+    host: str = "0.0.0.0"
+    port: int = 8000
 
-🤖 Основные возможности:
-- Обработка текстовых сообщений
-- Генерация ответов с использованием LLM
-- Работа в команде агентов
-- Управление задачами и процессами
-
-💬 Команды:
-- "привет" - приветствие
-- "помощь" - показать эту справку
-- Любой вопрос - получить ответ от агента
-
-🔧 Технические детали:
-- Фреймворк: CrewAI
-- LLM: GPT-4
-- Процесс: Sequential
-- Команда: 1 агент
-"""
-    
-    async def get_status(self) -> Dict[str, Any]:
-        """Получить статус агента"""
-        return {
-            "agent_name": "{{.ProjectName}}",
-            "framework": "CrewAI",
-            "status": "Активен",
-            "llm_model": "gpt-4",
-            "crew_size": 1,
-            "process_type": "Sequential",
-            "capabilities": [
-                "Обработка сообщений",
-                "Генерация ответов",
-                "Работа в команде",
-                "Управление задачами"
-            ]
-        }
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
-async def main():
-    """Основная функция для тестирования агента"""
-    agent = {{.ProjectName}}Agent()
-    
-    print("🤖 {{.ProjectName}} Agent запущен!")
-    print("Введите 'выход' для завершения")
-    print("Введите 'помощь' для справки")
-    print("-" * 50)
-    
-    while True:
-        try:
-            user_input = input("\n👤 Вы: ")
-            
-            if user_input.lower() in ['выход', 'exit', 'quit']:
-                print("👋 До свидания!")
-                break
-            elif user_input.lower() in ['помощь', 'help']:
-                help_text = await agent.get_help()
-                print(f"\n🤖 Агент:\n{help_text}")
-            else:
-                response = await agent.process_message(user_input)
-                print(f"\n🤖 Агент: {response}")
-                
-        except KeyboardInterrupt:
-            print("\n👋 До свидания!")
-            break
-        except Exception as e:
-            print(f"❌ Ошибка: {e}")
+settings = Settings()
+
+os.environ["OPENAI_API_KEY"] = settings.fm_api_key
+os.environ["OPENAI_API_BASE"] = settings.foundation_models_endpoint
+
+
+def create_crew(user_request: str) -> Crew:
+    """Create a CrewAI crew with coordinator and executor agents."""
+    coordinator = Agent(
+        role="Координатор",
+        goal="Проанализировать запрос и составить план выполнения",
+        backstory="Опытный координатор, эффективно распределяющий задачи.",
+        verbose=True,
+        allow_delegation=True,
+        llm=settings.model_name,
+    )
+
+    executor = Agent(
+        role="Исполнитель",
+        goal="Выполнить задачу и дать детальный ответ",
+        backstory="Квалифицированный специалист с широкими знаниями.",
+        verbose=True,
+        allow_delegation=False,
+        llm=settings.model_name,
+    )
+
+    analyze_task = Task(
+        description=f"Проанализируй запрос пользователя: {user_request}",
+        agent=coordinator,
+        expected_output="План выполнения задачи",
+    )
+
+    execute_task = Task(
+        description=f"Выполни запрос: {user_request}",
+        agent=executor,
+        expected_output="Детальный ответ на запрос пользователя",
+    )
+
+    return Crew(
+        agents=[coordinator, executor],
+        tasks=[analyze_task, execute_task],
+        process=Process.sequential,
+        verbose=True,
+    )
+
+
+app = FastAPI(
+    title=f"{settings.agent_name} CrewAI Agent",
+    description="{{.Description}}",
+    version="1.0.0",
+)
+
+
+class ProcessRequest(BaseModel):
+    message: str
+
+
+class ProcessResponse(BaseModel):
+    response: str
+    model: str
+
+
+@app.post("/agent/process", response_model=ProcessResponse)
+async def process_message(req: ProcessRequest):
+    """Process a message through the CrewAI crew."""
+    try:
+        crew = create_crew(req.message)
+        result = crew.kickoff()
+        return ProcessResponse(response=str(result), model=settings.model_name)
+    except Exception as e:
+        logger.error("CrewAI error: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/health")
+async def health():
+    return {"status": "ok", "agent": settings.agent_name, "framework": "crewai", "model": settings.model_name}
+
+
+def main():
+    uvicorn.run("src.agent:app", host=settings.host, port=settings.port, reload=settings.debug)
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

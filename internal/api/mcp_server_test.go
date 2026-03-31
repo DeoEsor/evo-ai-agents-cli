@@ -180,8 +180,8 @@ func TestMCPServerService_Update(t *testing.T) {
 			t.Errorf("Expected path '%s', got '%s'", expectedPath, r.URL.Path)
 		}
 
-		if r.Method != "PUT" {
-			t.Errorf("Expected method PUT, got %s", r.Method)
+		if r.Method != "PATCH" {
+			t.Errorf("Expected method PATCH, got %s", r.Method)
 		}
 
 		// Проверяем тело запроса
@@ -262,8 +262,8 @@ func TestMCPServerService_Resume(t *testing.T) {
 			t.Errorf("Expected path '%s', got '%s'", expectedPath, r.URL.Path)
 		}
 
-		if r.Method != "POST" {
-			t.Errorf("Expected method POST, got %s", r.Method)
+		if r.Method != "PATCH" {
+			t.Errorf("Expected method PATCH, got %s", r.Method)
 		}
 
 		w.WriteHeader(http.StatusOK)
@@ -287,8 +287,8 @@ func TestMCPServerService_Suspend(t *testing.T) {
 			t.Errorf("Expected path '%s', got '%s'", expectedPath, r.URL.Path)
 		}
 
-		if r.Method != "POST" {
-			t.Errorf("Expected method POST, got %s", r.Method)
+		if r.Method != "PATCH" {
+			t.Errorf("Expected method PATCH, got %s", r.Method)
 		}
 
 		w.WriteHeader(http.StatusOK)
