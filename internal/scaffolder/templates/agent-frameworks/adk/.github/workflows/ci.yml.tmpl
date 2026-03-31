@@ -1,70 +1,127 @@
-name: CI/CD Pipeline
+name: "{{.ProjectName}} CI/CD"
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main]
+
+env:
+  REGISTRY: cr.cloud.ru
+  IMAGE_NAME: ${{ secrets.ARTIFACT_REGISTRY_ID }}/{{.ProjectName}}
 
 jobs:
-  test:
+  lint:
+    name: Lint & Format
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [3.9, 3.10, 3.11]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dev dependencies
+        run: pip install black flake8 isort mypy
+
+      - name: Check formatting (black)
+        run: black --check src/
+
+      - name: Check imports (isort)
+        run: isort --check-only src/
+
+      - name: Lint (flake8)
+        run: flake8 src/ --max-line-length 120
+
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: agent
+          POSTGRES_PASSWORD: agent
+          POSTGRES_DB: test_db
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U agent -d test_db"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python-version }}
-    
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-    
-    - name: Run tests
-      run: |
-        python -m pytest tests/ -v
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run tests
+        run: python -m pytest tests/ -v --tb=short
+        env:
+          DATABASE_URL: postgresql://agent:agent@localhost:5432/test_db
 
   build:
-    needs: test
+    name: Build & Push Image
+    needs: [lint, test]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
-    
+
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-    
-    - name: Login to Container Registry
-      uses: docker/login-action@v3
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-    
-    - name: Build and push Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        push: true
-        tags: |
-          ghcr.io/${{ github.repository }}:latest
-          ghcr.io/${{ github.repository }}:${{ github.sha }}
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Login to Cloud.ru Artifact Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.IAM_KEY_ID }}
+          password: ${{ secrets.IAM_SECRET }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
 
   deploy:
+    name: Deploy to Cloud.ru
     needs: build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     environment: production
-    
+
     steps:
-    - name: Deploy {{.ProjectName}} ADK Agent to production
-      run: |
-        echo "Deploying {{.ProjectName}} ADK Agent to production"
-        echo "Image: ghcr.io/${{ github.repository }}:${{ github.sha }}"
+      - uses: actions/checkout@v4
+
+      - name: Install ai-agents-cli
+        run: |
+          wget -q https://github.com/cloud-ru/evo-ai-agents-cli/releases/latest/download/ai-agents-cli-linux -O ai-agents-cli
+          chmod +x ai-agents-cli
+
+      - name: Validate configuration
+        run: ./ai-agents-cli validate agents.yaml
+        env:
+          IAM_KEY_ID: ${{ secrets.IAM_KEY_ID }}
+          IAM_SECRET: ${{ secrets.IAM_SECRET }}
+          PROJECT_ID: ${{ secrets.PROJECT_ID }}
+
+      - name: Deploy agent
+        run: ./ai-agents-cli agents deploy agents.yaml
+        env:
+          IAM_KEY_ID: ${{ secrets.IAM_KEY_ID }}
+          IAM_SECRET: ${{ secrets.IAM_SECRET }}
+          PROJECT_ID: ${{ secrets.PROJECT_ID }}
+          ARTIFACT_REGISTRY_URL: ${{ env.REGISTRY }}

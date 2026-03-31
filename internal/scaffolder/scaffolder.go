@@ -217,13 +217,14 @@ func (s *Scaffolder) processTemplateFiles(templateDir, targetPath string, data *
 			relPath != ".gitignore" &&
 			relPath != ".editorconfig" &&
 			relPath != ".env.example" &&
+			relPath != ".gitlab-ci.yml.tmpl" &&
 			relPath != ".gitlab-ci.yml" &&
 			!strings.HasPrefix(relPath, ".github/") {
 			return nil
 		}
 
 		// Skip CI/CD files based on CICDType
-		if relPath == ".gitlab-ci.yml" && data.CICDType != "gitlab" && data.CICDType != "both" {
+		if (relPath == ".gitlab-ci.yml" || relPath == ".gitlab-ci.yml.tmpl") && data.CICDType != "gitlab" && data.CICDType != "both" {
 			return nil
 		}
 		if strings.HasPrefix(relPath, ".github/") && data.CICDType != "github" && data.CICDType != "both" {
