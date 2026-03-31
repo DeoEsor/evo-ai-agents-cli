@@ -1,23 +1,16 @@
-# Cloud.ru AI Agent Dependencies
+# Cloud.ru AI Agent
 fastapi>=0.104.0
 uvicorn>=0.24.0
 pydantic>=2.5.0
 pydantic-settings>=2.1.0
+python-dotenv>=1.0.0
+python-multipart>=0.0.6
 
 # Cloud.ru Foundation Models
 httpx>=0.25.0
 
-# Database (PostgreSQL + pgvector)
-asyncpg>=0.29.0
-sqlalchemy>=2.0.0
-pgvector>=0.2.4
-
-# Utilities
-python-dotenv>=1.0.0
-structlog>=23.2.0
-python-multipart>=0.0.6
-
-# Development Dependencies
+# Dev / Lint / Test
 pytest>=7.4.0
-pytest-asyncio>=0.21.0
 black>=23.0.0
+isort>=5.12.0
+flake8>=6.0.0

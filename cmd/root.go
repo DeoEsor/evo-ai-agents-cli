@@ -66,13 +66,17 @@ func init() {
 	RootCMD.PersistentFlags().
 		BoolVarP(&isVerbose, "verbose", "v", false, "Детализация процесса")
 
-	// Set custom help function
+	// Custom help only for the root command; subcommands use Cobra default
+	defaultHelp := func(cmd *cobra.Command, args []string) {
+		cmd.Usage()
+	}
 	RootCMD.SetHelpFunc(func(cmd *cobra.Command, args []string) {
-		showBeautifulHelp()
+		if cmd == RootCMD {
+			showBeautifulHelp()
+		} else {
+			defaultHelp(cmd, args)
+		}
 	})
-
-	// Also set help template to override default
-	RootCMD.SetHelpTemplate(`{{.UsageString}}`)
 
 	// Add commands
 	RootCMD.AddCommand(authCmd.RootCMD)

@@ -11,7 +11,7 @@ import uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 load_dotenv()
 
@@ -32,8 +32,7 @@ class Settings(BaseSettings):
     host: str = "0.0.0.0"
     port: int = 8000
 
-    class Config:
-        env_file = ".env"
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
 settings = Settings()
@@ -47,13 +46,17 @@ class FoundationModelsClient:
         self.model = model
         self.client = httpx.AsyncClient(timeout=60.0)
         self._token: Optional[str] = None
+        self._token_expires_at: float = 0
 
     async def _get_token(self) -> str:
         """Get API key or IAM token for Foundation Models authentication."""
-        if self._token:
+        import time as _time
+        now = _time.time()
+        if self._token and (self._token_expires_at == 0 or now < self._token_expires_at):
             return self._token
         if settings.fm_api_key:
             self._token = settings.fm_api_key
+            self._token_expires_at = 0  # API keys don't expire
             return self._token
         if not settings.iam_key_id or not settings.iam_secret:
             raise ValueError("FM_API_KEY or IAM_KEY_ID+IAM_SECRET must be set")
@@ -62,7 +65,10 @@ class FoundationModelsClient:
             json={"keyId": settings.iam_key_id, "secret": settings.iam_secret},
         )
         resp.raise_for_status()
-        self._token = resp.json().get("access_token", "")
+        data = resp.json()
+        self._token = data.get("access_token", "")
+        expires_in = data.get("expires_in", 3600)
+        self._token_expires_at = now + max(expires_in - 60, 60)
         return self._token
 
     async def chat(self, messages: List[Dict], temperature: float = 0.7) -> str:

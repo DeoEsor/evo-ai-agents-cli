@@ -41,10 +41,4 @@ AI агенты - это интеллектуальные помощники, к
 
 func init() {
 	log.Debug("Инициализация команды агентов")
-
-	// Добавляем подкоманды
-	RootCMD.AddCommand(listCmd)
-	RootCMD.AddCommand(deployCmd)
-	// RootCMD.AddCommand(getCmd)
-	// RootCMD.AddCommand(marketplaceCmd)
 }

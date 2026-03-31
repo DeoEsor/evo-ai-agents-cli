@@ -42,15 +42,4 @@ MCP серверы предоставляют контекст и инструм
 
 func init() {
 	log.Debug("Инициализация MCP серверов команды")
-
-	// Добавляем подкоманды
-	RootCMD.AddCommand(listCmd)
-	RootCMD.AddCommand(getCmd)
-	RootCMD.AddCommand(createCmd)
-	RootCMD.AddCommand(updateCmd)
-	RootCMD.AddCommand(deleteCmd)
-	RootCMD.AddCommand(resumeCmd)
-	RootCMD.AddCommand(suspendCmd)
-	RootCMD.AddCommand(historyCmd)
-	RootCMD.AddCommand(deployCmd)
 }

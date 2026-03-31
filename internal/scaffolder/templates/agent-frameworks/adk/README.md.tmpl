@@ -1,154 +1,96 @@
-# {{.ProjectName}} - AI Agent (ADK Framework)
+# {{.ProjectName}} - AI Agent (ADK)
 
 {{.Description}}
 
-Этот проект создан с использованием **ADK (Agent Development Kit)** - фреймворка для разработки AI агентов от Cloud.ru.
+Проект создан с помощью **AI Agents CLI** для Cloud.ru.
 
-## 🚀 Возможности
-
-- **ADK Framework** - современный фреймворк для AI агентов
-- **FastAPI** - высокопроизводительный веб-фреймворк
-- **Docker** - контейнеризация приложения
-- **CI/CD** - автоматизированное развертывание
-- **Мониторинг** - встроенные инструменты наблюдения
-
-## 📋 Требования
+## Требования
 
 - Python 3.9+
-- Docker
-- Git
+- Docker + Docker Compose
 
-## 🛠 Установка
-
-1. Клонируйте репозиторий:
-```bash
-git clone <repository-url>
-cd {{.ProjectName}}
-```
-
-2. Установите зависимости:
-```bash
-make install
-```
-
-3. Настройте переменные окружения:
-```bash
-cp .env.example .env
-# Отредактируйте .env файл
-```
-
-4. Запустите приложение:
-```bash
-make run
-```
-
-## 🏗 Разработка
-
-### Доступные команды
+## Быстрый старт
 
 ```bash
-make help          # Показать все доступные команды
-make install        # Установить зависимости
-make run            # Запустить приложение
-make test           # Запустить тесты
-make lint           # Проверить код
-make format         # Форматировать код
-make build          # Собрать Docker образ
-make deploy         # Развернуть приложение
+# Установите зависимости
+pip install -r requirements.txt
+
+# Настройте credentials
+cp env.example .env
+# Отредактируйте .env — укажите FM_API_KEY или IAM_KEY_ID + IAM_SECRET
+
+# Запустите через Docker Compose (агент + PostgreSQL с pgvector)
+docker compose up -d --build
+
+# Проверьте health
+curl http://localhost:8000/health
+
+# Отправьте запрос
+curl -X POST http://localhost:8000/agent/process \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Привет!"}'
 ```
 
-### Структура проекта
+## Структура проекта
 
 ```
 {{.ProjectName}}/
 ├── src/
 │   ├── __init__.py
-│   ├── agent.py          # Основной агент
-│   ├── handlers/         # Обработчики событий
-│   ├── tools/            # Инструменты агента
-│   └── config/           # Конфигурация
-├── tests/                # Тесты
-├── docker/               # Docker конфигурация
-├── .github/              # GitHub Actions
-├── .gitlab-ci.yml        # GitLab CI
+│   └── agent.py            # FastAPI приложение + Foundation Models клиент
+├── agents.yaml              # Конфигурация для ai-agents-cli deploy
+├── docker-compose.yml       # Агент + PostgreSQL (pgvector)
 ├── Dockerfile
-├── docker-compose.yml
+├── env.example              # Шаблон переменных окружения
+├── requirements.txt
 ├── Makefile
+├── .github/workflows/ci.yml # GitHub Actions CI/CD
+├── .gitlab-ci.yml           # GitLab CI/CD
+├── LICENSE
 └── README.md
 ```
 
-## 🔧 Конфигурация
+## API Endpoints
 
-Основные настройки находятся в файле `.env`:
+| Метод | Путь | Описание |
+|-------|------|----------|
+| `POST` | `/agent/process` | Обработка сообщения через LLM |
+| `GET` | `/agent/models` | Список доступных моделей |
+| `GET` | `/health` | Проверка состояния |
+| `GET` | `/docs` | Swagger UI |
 
-```bash
-# ADK Configuration
-ADK_AGENT_NAME={{.ProjectName}}
-ADK_AGENT_VERSION=1.0.0
-ADK_AGENT_DESCRIPTION="{{.Description}}"
+## Конфигурация
 
-# API Configuration
-API_HOST=0.0.0.0
-API_PORT=8000
-API_DEBUG=true
+Переменные окружения (`.env`):
 
-# Logging
-LOG_LEVEL=INFO
-LOG_FORMAT=json
-```
+| Переменная | Описание |
+|-----------|----------|
+| `FM_API_KEY` | API-ключ Foundation Models (Console → Сервисные аккаунты → API-ключи) |
+| `IAM_KEY_ID` | IAM Key ID (альтернативная авторизация) |
+| `IAM_SECRET` | IAM Secret |
+| `MODEL_NAME` | Модель LLM (по умолчанию: `{{.ModelName}}`) |
+| `DATABASE_URL` | PostgreSQL connection string |
 
-## 🚀 Развертывание
-
-### Docker
-
-```bash
-make build
-make run
-```
-
-### Docker Compose
+## Развертывание в Cloud.ru
 
 ```bash
-docker-compose up -d
+# Валидация конфигурации
+ai-agents-cli validate agents.yaml
+
+# Деплой агента
+ai-agents-cli agents deploy agents.yaml
 ```
 
-### CI/CD
+## Команды разработки
 
-Проект поддерживает автоматическое развертывание через:
-- **GitHub Actions** (`.github/workflows/ci.yml`)
-- **GitLab CI** (`.gitlab-ci.yml`)
-
-## 📊 Мониторинг
-
-ADK предоставляет встроенные инструменты мониторинга:
-- Метрики производительности
-- Логирование событий
-- Трассировка запросов
-- Алерты и уведомления
-
-## 🤝 Вклад в проект
-
-1. Форкните репозиторий
-2. Создайте ветку для новой функции
-3. Внесите изменения
-4. Добавьте тесты
-5. Создайте Pull Request
-
-## 📄 Лицензия
-
-Этот проект лицензирован под MIT License - см. файл [LICENSE](LICENSE) для деталей.
-
-## 👥 Авторы
-
-- **{{.Author}}** - *Изначальная разработка*
-
-## 📞 Поддержка
-
-Если у вас есть вопросы или проблемы:
-- Создайте Issue в репозитории
-- Обратитесь к документации ADK
-- Свяжитесь с командой разработки
+```bash
+make help       # Все доступные команды
+make run        # Запустить агента локально
+make lint       # Проверить код (black, isort, flake8)
+make test       # Запустить тесты
+make build      # Собрать Docker образ
+```
 
 ---
 
-**Создано с помощью [ai-agents-cli](https://github.com/cloud-ru/evo-ai-agents-cli)**
+Создано с помощью [ai-agents-cli](https://github.com/cloud-ru/evo-ai-agents-cli) | Автор: {{.Author}}

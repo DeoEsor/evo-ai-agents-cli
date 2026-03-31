@@ -37,7 +37,7 @@ var getCmd = &cobra.Command{
 		if err != nil {
 			appErr := errorHandler.WrapAPIError(err, "API_CLIENT_ERROR", "Ошибка получения API клиента")
 			appErr = appErr.WithSuggestions(
-				"Проверьте переменные окружения: IAM_KEY_ID, IAM_SECRET_KEY, IAM_ENDPOINT",
+				"Проверьте переменные окружения: IAM_KEY_ID, IAM_SECRET, IAM_ENDPOINT",
 				"Убедитесь что вы авторизованы: ai-agents-cli auth login или в папке выполнения команды лежит .env файл с перемнными выше",
 				"Проверьте доступность API: curl -I $IAM_ENDPOINT",
 				"Обратитесь к администратору для получения учетных данных",
@@ -54,7 +54,7 @@ var getCmd = &cobra.Command{
 			appErr = appErr.WithSuggestions(
 				"Проверьте правильность ID сервера: "+serverID,
 				"Убедитесь что сервер существует: ai-agents-cli mcp-servers list",
-				"Проверьте переменные окружения: IAM_KEY_ID, IAM_SECRET_KEY, IAM_ENDPOINT",
+				"Проверьте переменные окружения: IAM_KEY_ID, IAM_SECRET, IAM_ENDPOINT",
 				"Убедитесь что вы авторизованы: ai-agents-cli auth login или в папке выполнения команды лежит .env файл с перемнными выше",
 				"📚 Подробная документация: https://cloud.ru/docs/ai-agents/ug/index?source-platform=Evolution",
 			)
