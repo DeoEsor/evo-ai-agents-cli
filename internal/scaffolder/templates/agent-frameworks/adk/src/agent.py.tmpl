@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     agent_name: str = "{{.ProjectName}}"
     foundation_models_endpoint: str = "https://foundation-models.api.cloud.ru/v1"
     model_name: str = "{{.ModelName}}"
+    fm_api_key: str = ""
     iam_key_id: str = ""
     iam_secret: str = ""
     iam_endpoint: str = "https://iam.api.cloud.ru"
@@ -48,13 +49,16 @@ class FoundationModelsClient:
         self._token: Optional[str] = None
 
     async def _get_token(self) -> str:
-        """Get IAM token for authentication."""
+        """Get API key or IAM token for Foundation Models authentication."""
         if self._token:
             return self._token
+        if settings.fm_api_key:
+            self._token = settings.fm_api_key
+            return self._token
         if not settings.iam_key_id or not settings.iam_secret:
-            raise ValueError("IAM_KEY_ID and IAM_SECRET must be set")
+            raise ValueError("FM_API_KEY or IAM_KEY_ID+IAM_SECRET must be set")
         resp = await self.client.post(
-            f"{settings.iam_endpoint}/iam/v1/auth/token",
+            f"{settings.iam_endpoint}/api/v1/auth/token",
             json={"keyId": settings.iam_key_id, "secret": settings.iam_secret},
         )
         resp.raise_for_status()

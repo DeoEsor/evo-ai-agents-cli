@@ -36,7 +36,7 @@ func RunProjectForm(projectType string, defaultProjectName ...string) (*ProjectF
 		Author:       defaultAuthor,
 		CICDType:     "both",
 		DatabaseType: "postgresql",
-		ModelName:    "openai/gpt-4o",
+		ModelName:    "ai-sage/GigaChat3-10B-A1.8B",
 		GitInit:      true,
 		CreateEnv:    true,
 		InstallDeps:  false,
@@ -117,18 +117,16 @@ func RunProjectForm(projectType string, defaultProjectName ...string) (*ProjectF
 			// Foundation Models model selection
 			huh.NewSelect[string]().
 				Title("🧠 Модель Foundation Models").
-				Description("Выберите LLM модель Cloud.ru (https://foundation-models.api.cloud.ru/v1/models)").
+				Description("Cloud.ru Foundation Models (foundation-models.api.cloud.ru)").
 				Options(
-					huh.NewOption("GigaChat Pro", "gigachat/GigaChat-Pro"),
-					huh.NewOption("GigaChat Max", "gigachat/GigaChat-Max"),
-					huh.NewOption("GigaChat", "gigachat/GigaChat"),
-					huh.NewOption("DeepSeek R1", "deepseek/deepseek-r1"),
-					huh.NewOption("DeepSeek V3", "deepseek/deepseek-v3"),
-					huh.NewOption("Qwen 2.5 72B", "qwen/qwen2.5-72b-instruct"),
-					huh.NewOption("Llama 3.3 70B", "meta-llama/llama-3.3-70b-instruct"),
-					huh.NewOption("Mistral Large", "mistralai/mistral-large-instruct"),
-					huh.NewOption("OpenAI GPT-4o", "openai/gpt-4o"),
-					huh.NewOption("OpenAI GPT-4o mini", "openai/gpt-4o-mini"),
+					huh.NewOption("GigaChat3 10B", "ai-sage/GigaChat3-10B-A1.8B"),
+					huh.NewOption("GigaChat3 20B", "ai-sage/GigaChat3-20B-A3.6B"),
+					huh.NewOption("DeepSeek R1", "deepseek-ai/DeepSeek-R1"),
+					huh.NewOption("DeepSeek V3", "deepseek-ai/DeepSeek-V3-0324"),
+					huh.NewOption("Qwen 2.5 72B", "Qwen/Qwen2.5-72B-Instruct"),
+					huh.NewOption("Qwen 3 235B", "Qwen/Qwen3-235B-A22B"),
+					huh.NewOption("Llama 3.3 70B", "meta-llama/Llama-3.3-70B-Instruct"),
+					huh.NewOption("Mistral Large 2", "mistralai/Mistral-Large-Instruct-2411"),
 				).
 				Value(&formData.ModelName),
 
